@@ -112,6 +112,7 @@ flowchart TD
 │   │   ├── notes/01_diffnorm_master_technical_report.md
 │   │   ├── notes/02_diffnorm_mathematical_foundations.md
 │   │   ├── notes/03_diffnorm_proposal_vs_implementation_analysis.md
+│   │   ├── papers/related_works.md            # Annotated related work taxonomy & literature review
 │   │   ├── proposals/proposal.md
 │   │   └── proposals/comparison_proposal_vs_humansplathmr.md
 │   └── pdf/                                   # Compiled Vector PDF reports (MANDATORY review deliverables)
@@ -119,6 +120,7 @@ flowchart TD
 │       ├── notes/01_diffnorm_master_technical_report.pdf
 │       ├── notes/02_diffnorm_mathematical_foundations.pdf
 │       ├── notes/03_diffnorm_proposal_vs_implementation_analysis.pdf
+│       ├── papers/related_works.pdf           # 6-page annotated related works & taxonomy deliverable
 │       ├── proposals/proposal.pdf
 │       └── proposals/comparison_proposal_vs_humansplathmr.pdf
 └── results/                                   # Evaluation logs and benchmark JSON outputs
@@ -130,8 +132,8 @@ flowchart TD
 
 ### 1. Environment Setup
 ```bash
-git clone https://github.com/TienDat8605/DiffNorm.git
-cd DiffNorm
+git clone https://github.com/TienDat8605/DiffNorm-Contact-HMR.git
+cd DiffNorm-Contact-HMR
 
 # Create python virtual environment
 python3 -m venv venv
@@ -175,8 +177,9 @@ Comprehensive PDF reports typeset with MathJax vector formulas, SVG diagrams, an
 2. 📄 [**`01_diffnorm_master_technical_report.pdf`**](documents/pdf/notes/01_diffnorm_master_technical_report.pdf) — 8-page System Benchmark, Colab training logs, and SOTA comparison.
 3. 📄 [**`02_diffnorm_mathematical_foundations.pdf`**](documents/pdf/notes/02_diffnorm_mathematical_foundations.pdf) — 9-page step-by-step mathematical guide covering the analytical Gaussian overlap integral and rotational torque derivations.
 4. 📄 [**`03_diffnorm_proposal_vs_implementation_analysis.pdf`**](documents/pdf/notes/03_diffnorm_proposal_vs_implementation_analysis.pdf) — 8-page comparative post-audit contrasting the original proposal with realized results.
-5. 📄 [**`proposal.pdf`**](documents/pdf/proposals/proposal.pdf) — 9-page formal academic proposal for CVPR/ICCV.
-6. 📄 [**`comparison_proposal_vs_humansplathmr.pdf`**](documents/pdf/proposals/comparison_proposal_vs_humansplathmr.pdf) — 8-page technical critique contrasting DiffNorm against HumanSplatHMR.
+5. 📄 [**`related_works.pdf`**](documents/pdf/papers/related_works.pdf) — 6-page comprehensive related works taxonomy and literature review.
+6. 📄 [**`proposal.pdf`**](documents/pdf/proposals/proposal.pdf) — 9-page formal academic proposal for CVPR/ICCV.
+7. 📄 [**`comparison_proposal_vs_humansplathmr.pdf`**](documents/pdf/proposals/comparison_proposal_vs_humansplathmr.pdf) — 8-page technical critique contrasting DiffNorm against HumanSplatHMR.
 
 ---
 
