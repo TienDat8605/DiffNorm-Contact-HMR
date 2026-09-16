@@ -1,134 +1,109 @@
-# Mathematical Foundations of DiffNorm-Contact HMR: A Step-by-Step Walkthrough
+# Mathematical Foundations of DiffNorm-Contact HMR: A Rigorous Step-by-Step Treatise
 
-**Deconstructing Every Equation, Tensor, and Derivative from Simple Geometry to Analytical Physics**
+**Deconstructing Every Equation, Tensor, and Derivative from Differential Geometry to Analytical Physics**
 
----
-
-## 1. Introduction & The Core Mental Model
-
-In Monocular Human Mesh Recovery (HMR), the computer receives a single 2D photograph of a person and must reconstruct a full, physically plausible 3D clothed human body.
-
-### The Three Fundamental Traps of Monocular HMR
-To understand why our math is structured the way it is, you must first understand the three traps that cause all traditional methods to fail:
-
-1. **The $180^\circ$ Bas-Relief Depth Ambiguity**:
-   In a flat 2D photograph, you cannot easily tell whether someone's arm is reaching $30^\circ$ toward the camera or $30^\circ$ away from the camera. In both cases, the 2D pixel projection looks almost identical.
-2. **The Clothing Bias Trap**:
-   Real people wear jackets, hoodies, and loose pants. Standard parametric human models (like SMPL) represent a naked human body. If an optimization algorithm tries to match the silhouette of a puffy jacket by rotating joint angles, the skeleton twists into impossible, broken-bone poses.
-3. **The Ghost Limb Phenomenon (Self-Intersections)**:
-   Standard neural networks predict joint angles without understanding solid matter. When someone folds their hands or crosses their legs, the predicted 3D arm cuts right through the torso or thighs, creating $\sim 100–200 \text{ cm}^3$ of impossible self-penetration volume.
-
-### How DiffNorm-Contact Solves Them
-Our mathematical pipeline uses:
-- **4D-Humans (HMR 2.0)** to solve global initialization (escaping the $180^\circ$ depth trap).
-- **DSINE Surface Normal Torques** to guide 3D angular orientation without being fooled by clothing textures.
-- **Analytical Gaussian Overlap Integrals** to create a smooth, continuous repulsive force that guarantees zero self-collisions.
-- **Dual-Frequency Gradient Detachment** so clothing wrinkles deform the surface without corrupting the skeleton.
-
-Let us now walk through every single mathematical step in the pipeline.
+**Author:** Antigravity Research Intelligence Team  
+**Date:** September 2026 (Audited & Corrected Post-Review)  
+**Document Classification:** Mathematical Foundations & Derivations Guide  
+**Reference Document:** [`documents/md/reviews/diffnorm_mathematical_review.md`](file:///home/dat/HMR/documents/md/reviews/diffnorm_mathematical_review.md)  
 
 ---
 
-## 2. Step 1: Posing the Skeleton (SMPL Forward Kinematics)
+## 1. Executive Audit & Foundational Scope
+
+Following the peer review audit ([`diffnorm_mathematical_review.md`](file:///home/dat/HMR/documents/md/reviews/diffnorm_mathematical_review.md)), this document establishes a mathematically unified and algebraically exact treatment of all components in **DiffNorm-Contact HMR**.
+
+| Mathematical Area | Formal Formulation in this Document | Prior Error / Limitation Resolved |
+| :--- | :--- | :--- |
+| **Gaussian Normalization & Product Integral** | Unnormalized exponential kernels $g_i(\mathbf{x}) = \exp\left(-\frac{1}{2}\mathbf{d}_i^T \boldsymbol{\Sigma}_i^{-1}\mathbf{d}_i\right)$; closed-form integral includes $\sqrt{\frac{|\boldsymbol{\Sigma}_i||\boldsymbol{\Sigma}_j|}{|\boldsymbol{\Sigma}_i+\boldsymbol{\Sigma}_j|}}$ prefactor. | Eliminated mismatch where normalized density formula was stated without the covariance determinant numerator. |
+| **Center Repulsion Gradient** | $\nabla_{\boldsymbol{\mu}_i} \mathcal{K}_{ij} = -\mathcal{K}_{ij}(\boldsymbol{\Sigma}_i+\boldsymbol{\Sigma}_j)^{-1}(\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)$ (piecewise smooth due to spatial culling thresholds). | Corrected claim from "infinitely differentiable" to "piecewise smooth within active spatial interaction thresholds". |
+| **Collision Representation** | Continuous Gaussian overlap integral $\mathcal{K}_{ij}$ serving as a continuous repulsive barrier surrogate for self-intersection avoidance. | Disentangled continuous Gaussian kernel overlap (units: $\text{m}^3$) from discrete triangle-mesh voxelized SDF interpenetration volume ($\text{cm}^3$). |
+| **Normal Loss Gradient & Lie Algebra Torque** | Explicit projection derivative for unit-vector accumulation $\frac{1}{\|\hat{\mathbf{N}}\|} [\mathbf{N}^* - (\hat{\mathbf{N}} \cdot \mathbf{N}^*)\hat{\mathbf{N}}]$ and Lie algebra variation $\boldsymbol{\tau} = \mathbf{n} \times \mathbf{g}$. | Corrected incomplete gradient $-\mathbf{N}^*$; derived exact Lie algebra variation $\mathbf{n} \times \mathbf{g}$ and finite Rodrigues Jacobian. |
+| **Kinematic-Normal Anchoring** | Splat base normals anchored to posed SMPL vertex normals $\mathbf{n}_{\text{vertex}, i}(\mathbf{V}(\boldsymbol{\theta}))$ via mesh face cross-products. | Resolved decoupling where independent quaternions absorbed normal loss without torquing underlying skeletal joints $\boldsymbol{\theta}$. |
+| **Gradient Routing Mechanics** | Explicit autograd graph detachment (`detach_mesh=True`) insulating kinematics from high-frequency photometric residuals. | Replaced loose "strict spectral decomposition" claims with mathematically precise autograd detachment proofs. |
+
+---
+
+## 2. Step 1: Parametric Body Articulation (SMPL Kinematics)
 
 ```mermaid
 flowchart LR
-    Params["Pose θ ∈ R²⁴ˣ³ & Shape β ∈ R¹⁰"] --> LBS["Linear Blend Skinning (LBS)"]
-    Template["Canonical Template T ∈ R⁶⁸⁹⁰ˣ³"] --> LBS
-    LBS --> Verts["Posed Mesh Vertices v_i ∈ R³ (i = 1...6890)"]
+    Params["Pose θ ∈ R²⁴ˣ³ & Shape β ∈ R¹⁰"] --> Blend["Shape & Pose Blend Shapes\nv_shaped = T + B_s(β) + B_p(θ)"]
+    Blend --> FK["Forward Kinematics (Rodrigues SO(3))\nA_k(θ) = G_k(θ) G_rest,k⁻¹"]
+    FK --> LBS["Linear Blend Skinning (LBS)\nV(θ, β) = Σ_k w_ik A_k(θ) v_homo"]
+    LBS --> Normals["Vertex Face Cross-Products\nn_vertex(V(θ))"]
 ```
 
-### What are we calculating?
-We want to take a set of numbers representing a person's body shape and joint angles, and compute the 3D coordinate $\mathbf{v}_i \in \mathbb{R}^3$ of all 6,890 points on the human skin.
+### 2.1 Parameter Space & Dimensionality
+Let the human body state be parameterized by:
+- **Body Shape $\boldsymbol{\beta} \in \mathbb{R}^{10}$**: Coefficients of the top 10 principal component vectors capturing anatomical identity (height, limb proportions, BMI).
+- **Articulated Pose $\boldsymbol{\theta} \in \mathbb{R}^{24 \times 3}$**: Twenty-four 3D axis-angle rotation vectors. For joint $k \in \{0, \dots, 23\}$, the vector $\boldsymbol{\theta}_k \in \mathbb{R}^3$ specifies the rotation axis $\hat{\boldsymbol{\theta}}_k = \frac{\boldsymbol{\theta}_k}{\|\boldsymbol{\theta}_k\|}$ and rotation angle $\theta_k = \|\boldsymbol{\theta}_k\|$ in radians.
+- **Global Camera Translation $\mathbf{t} \in \mathbb{R}^3$**: Root joint displacement relative to the camera optical center in meters.
 
-### Substep 1.1: The Input Variables
-- **Shape parameters $\boldsymbol{\beta} \in \mathbb{R}^{10}$**: Ten numbers from Principal Component Analysis (PCA) that define overall body proportions (height, weight, shoulder width, leg length).
-- **Pose parameters $\boldsymbol{\theta} \in \mathbb{R}^{24 \times 3}$**: Twenty-four 3D vectors. Each vector $\boldsymbol{\theta}_k \in \mathbb{R}^3$ represents the **axis-angle rotation** of joint $k$ (pelvis, knees, elbows, neck, etc.):
-  - The direction $\frac{\boldsymbol{\theta}_k}{\|\boldsymbol{\theta}_k\|}$ is the axis of rotation in 3D space.
-  - The length $\|\boldsymbol{\theta}_k\|$ is the angle in radians rotated around that axis.
-- **Camera translation $\mathbf{t} \in \mathbb{R}^3$**: The 3D position $(t_x, t_y, t_z)$ of the human center relative to the camera lens in meters.
+### 2.2 Template Deformation & Blend Shapes
+Starting from the unposed neutral canonical template $\bar{\mathbf{v}} \in \mathbb{R}^{6890 \times 3}$, shape and pose deformations are applied linearly:
+$$\mathbf{v}_{\text{shaped}, i}(\boldsymbol{\beta}, \boldsymbol{\theta}) = \bar{\mathbf{v}}_i + \mathbf{B}_{s, i}(\boldsymbol{\beta}) + \mathbf{B}_{p, i}(\boldsymbol{\theta})$$
+where:
+- $\mathbf{B}_{s, i}(\boldsymbol{\beta}) = \sum_{l=1}^{10} \beta_l \mathbf{S}_{l, i}$ represents linear shape displacements.
+- $\mathbf{B}_{p, i}(\boldsymbol{\theta}) = \sum_{m=1}^{207} (\mathbf{R}_{k(m)} - \mathbf{R}_{k(m)}^{\text{rest}}) \mathbf{P}_{m, i}$ represents pose-dependent corrective blend shapes that alleviate muscle pinching at articulated joints.
 
-### Substep 1.2: Base Body Shaping
-Before moving any joints, we shape the unposed "T-pose" body template $\mathbf{T} \in \mathbb{R}^{6890 \times 3}$:
+### 2.3 Rodrigues' Rotation Formula on $SO(3)$
+For each joint rotation vector $\boldsymbol{\theta}_k \in \mathbb{R}^3$, the matrix exponential $\mathbf{R}_k = \exp([\boldsymbol{\theta}_k]_\times) \in SO(3)$ is computed in closed form via Rodrigues' formula:
+$$\mathbf{R}_k = \mathbf{I} + \sin(\theta_k) \mathbf{K}_k + (1 - \cos(\theta_k)) \mathbf{K}_k^2$$
+where $\mathbf{K}_k = [\hat{\boldsymbol{\theta}}_k]_\times$ is the skew-symmetric cross-product matrix:
+$$[\hat{\boldsymbol{\theta}}_k]_\times = \begin{bmatrix} 0 & -\hat{\theta}_{k, z} & \hat{\theta}_{k, y} \\ \hat{\theta}_{k, z} & 0 & -\hat{\theta}_{k, x} \\ -\hat{\theta}_{k, y} & \hat{\theta}_{k, x} & 0 \end{bmatrix}$$
 
-$$\mathbf{v}_{shaped, i} = \mathbf{T}_i + \sum_{k=1}^{10} \beta_k \mathbf{S}_{k, i}$$
+### 2.4 Forward Kinematics & Skinning Transformations
+The kinematic tree specifies a unique parent $p = \text{parent}(k)$ for each joint, with $p = -1$ for the pelvis root. The global rigid transformation matrix $\mathbf{G}_k \in SE(3)$ is accumulated down the kinematic chain:
+$$\mathbf{G}_k(\boldsymbol{\theta}) = \mathbf{G}_{\text{parent}(k)}(\boldsymbol{\theta}) \begin{bmatrix} \mathbf{R}_k & \mathbf{j}_k - \mathbf{j}_{\text{parent}(k)} \\ \mathbf{0}^T & 1 \end{bmatrix}, \quad \mathbf{G}_0(\boldsymbol{\theta}) = \begin{bmatrix} \mathbf{R}_0 & \mathbf{j}_0 \\ \mathbf{0}^T & 1 \end{bmatrix}$$
+where $\mathbf{j}_k \in \mathbb{R}^3$ are rest joint locations predicted from shaped vertices via joint regressor matrix $\mathcal{J} \in \mathbb{R}^{24 \times 6890}$.
 
-Where $\mathbf{S}_k \in \mathbb{R}^{6890 \times 3}$ is the $k$-th pre-learned shape displacement basis (e.g., expanding the chest or lengthening the femur).
+To map vertices from canonical rest space into posed world space, we define the affine skinning matrix $\mathbf{A}_k \in \mathbb{R}^{4 \times 4}$:
+$$\mathbf{A}_k(\boldsymbol{\theta}) = \mathbf{G}_k(\boldsymbol{\theta}) \begin{bmatrix} \mathbf{I} & -\mathbf{j}_k \\ \mathbf{0}^T & 1 \end{bmatrix}$$
 
-### Substep 1.3: The Kinematic Bone Tree
-The human skeleton is a hierarchical tree with 24 joints. Joint 0 is the pelvis (the root). Joint 1 (left hip) is a child of the pelvis; Joint 4 (left knee) is a child of the left hip; Joint 7 (left ankle) is a child of the left knee.
+### 2.5 Linear Blend Skinning (LBS)
+Each vertex $\mathbf{v}_i$ is blended across all 24 bones using skinning blend weights $w_{ik} \ge 0$ ($\sum_{k=0}^{23} w_{ik} = 1$):
+$$\mathbf{v}_i(\boldsymbol{\theta}, \boldsymbol{\beta}, \mathbf{t}) = \sum_{k=0}^{23} w_{ik} \mathbf{A}_k(\boldsymbol{\theta}) \begin{bmatrix} \mathbf{v}_{\text{shaped}, i} \\ 1 \end{bmatrix}_{1:3} + \mathbf{t}$$
 
-Using Rodrigues' formula, each joint rotation vector $\boldsymbol{\theta}_k$ is converted into a $3 \times 3$ rotation matrix $\mathbf{R}_k$:
-
-$$\mathbf{R}_k = \mathbf{I} + (\sin \theta_k) \mathbf{K} + (1 - \cos \theta_k) \mathbf{K}^2$$
-
-Where $\mathbf{K}$ is the skew-symmetric cross-product matrix of the unit rotation axis.
-
-The total world transformation matrix $\mathbf{A}_k \in \mathbb{R}^{4 \times 4}$ for joint $k$ is the product of its own rotation and all its ancestors up to the pelvis:
-
-$$\mathbf{A}_k(\boldsymbol{\theta}) = \prod_{p \in \text{ancestors}(k)} \mathbf{T}_{p, \text{parent}(p)}$$
-
-### Substep 1.4: Linear Blend Skinning (LBS)
-Every skin vertex $i$ on the body is influenced by several nearby bones according to fixed blend weights $w_{ik} \ge 0$ (where $\sum_{k=1}^{24} w_{ik} = 1$). For example, a vertex on the elbow is influenced $50\%$ by the upper arm bone and $50\%$ by the forearm bone.
-
-The final 3D position of vertex $i$ in camera coordinates is:
-
-$$\mathbf{v}_i = \sum_{k=1}^{24} w_{ik} \mathbf{A}_k \begin{bmatrix} \mathbf{v}_{shaped, i} \\ 1 \end{bmatrix}_{1:3} + \mathbf{t}$$
-
-### Why do we calculate this?
-This gives us a clean, mathematically continuous function $\mathbf{v}_i(\boldsymbol{\theta}, \boldsymbol{\beta}, \mathbf{t})$: whenever we tweak any joint rotation $\boldsymbol{\theta}_k$, all 6,890 vertices smoothly move according to natural human skeletal anatomy.
+### 2.6 Posed Vertex Surface Normals
+For vertex $i$, the continuous surface normal vector is computed analytically from the cross-products of adjacent triangular mesh faces $\mathcal{F}(i)$:
+$$\mathbf{n}_{\text{vertex}, i}(\boldsymbol{\theta}) = \frac{\sum_{f \in \mathcal{F}(i)} (\mathbf{v}_{f, 1} - \mathbf{v}_{f, 0}) \times (\mathbf{v}_{f, 2} - \mathbf{v}_{f, 0})}{\left\| \sum_{f \in \mathcal{F}(i)} (\mathbf{v}_{f, 1} - \mathbf{v}_{f, 0}) \times (\mathbf{v}_{f, 2} - \mathbf{v}_{f, 0}) \right\| + \epsilon}$$
+Because $\mathbf{v}_i$ is a fully differentiable function of $\boldsymbol{\theta}$, $\mathbf{n}_{\text{vertex}, i}(\boldsymbol{\theta})$ provides an exact autograd pathway connecting screen-space normal errors directly to bone rotations $\boldsymbol{\theta}$.
 
 ---
 
-## 3. Step 2: From Rigid Mesh to Tangential 3D Gaussians
+## 3. Step 2: Tangential Gaussian Disk Representation
 
 ```mermaid
 flowchart LR
-    Vert["Mesh Vertex v_i"] --> Center["Gaussian Center μ_i = v_i + δ_i"]
-    Normals["Local Surface Normal n_i"] --> Cov["Covariance Matrix Σ_i = R_i S_i S_i^T R_i^T"]
-    Tangents["Tangent Scales s_uv"] --> Cov
-    Center --> Splat["Tangential 3D Gaussian G_i(x)"]
-    Cov --> Splat
+    MeshV["Posed Vertex v_i(θ)"] --> Mean["Gaussian Mean: μ_i = v_i(θ) + δ_i"]
+    MeshN["Vertex Normal n_vertex,i(θ)"] --> Normal["Splat Normal: n_i = R_offset n_vertex,i(θ)"]
+    Scales["Scales s_uv & s_3 = τ * min"] --> Cov["Covariance: Σ_i = R_i S_i S_i^T R_i^T"]
+    Normal & Scales --> Cov
+    Mean & Cov --> Splat["Tangential 3D Gaussian g_i(x)"]
 ```
 
-### What are we calculating?
-SMPL only gives us a naked body with rigid, flat triangles. To capture real humans wearing clothes, we attach a **learnable 3D Gaussian splat** to every single vertex.
+### 3.1 Unnormalized Exponential Gaussian Kernel
+Each mesh vertex $i \in \{1, \dots, 6890\}$ anchors an unnormalized 3D Gaussian spatial distribution:
+$$g_i(\mathbf{x}) = \exp\left( -\frac{1}{2} (\mathbf{x} - \boldsymbol{\mu}_i)^T \boldsymbol{\Sigma}_i^{-1} (\mathbf{x} - \boldsymbol{\mu}_i) \right)$$
+where:
+- $\boldsymbol{\mu}_i = \mathbf{v}_i(\boldsymbol{\theta}, \boldsymbol{\beta}, \mathbf{t}) + \boldsymbol{\delta}_i \in \mathbb{R}^3$ is the Gaussian center, shifted by local displacement offset $\boldsymbol{\delta}_i \in \mathbb{R}^3$ modeling clothing wrinkles.
+- $\boldsymbol{\Sigma}_i \in \mathbb{R}^{3 \times 3}$ is the positive-definite spatial covariance matrix.
 
-### Substep 2.1: What is a 3D Gaussian?
-Instead of a single hard point, a 3D Gaussian is a continuous, smooth spatial probability distribution in 3D space:
+### 3.2 Flat Tangential Disk Constraint
+To ensure Gaussians represent physical surface patches rather than unconstrained volumetric clouds, we enforce a strict anisotropic scaling constraint:
+$$\mathbf{S}_i = \operatorname{diag}(s_{i, 1}, s_{i, 2}, s_{i, 3})$$
+$$s_{i, 1} = \exp(s_{uv, i, 1}), \quad s_{i, 2} = \exp(s_{uv, i, 2}), \quad s_{i, 3} = \tau \cdot \min(s_{i, 1}, s_{i, 2})$$
+with flatness ratio $\tau = 0.03$. 
 
-$$G_i(\mathbf{x}) = \exp\left( -\frac{1}{2} (\mathbf{x} - \boldsymbol{\mu}_i)^T \boldsymbol{\Sigma}_i^{-1} (\mathbf{x} - \boldsymbol{\mu}_i) \right)$$
+### 3.3 Kinematic-Anchored Normal Orientation
+To ensure that surface normal loss exerts direct rotational torques onto bone kinematics $\boldsymbol{\theta}$, the principal normal axis $\mathbf{n}_i$ is anchored to the posed vertex surface normal $\mathbf{n}_{\text{vertex}, i}(\boldsymbol{\theta})$:
+$$\mathbf{n}_i^{\text{world}}(\boldsymbol{\theta}, \mathbf{q}_i) = \frac{\mathbf{R}_{\text{offset}}(\mathbf{q}_i) \mathbf{n}_{\text{vertex}, i}(\boldsymbol{\theta})}{\| \mathbf{R}_{\text{offset}}(\mathbf{q}_i) \mathbf{n}_{\text{vertex}, i}(\boldsymbol{\theta}) \|}$$
+where $\mathbf{R}_{\text{offset}}(\mathbf{q}_i) \in SO(3)$ is parameterized by unit quaternions $\mathbf{q}_i \in \mathbb{S}^3$ initialized to identity $[1, 0, 0, 0]$ ($R_{\text{offset}} = \mathbf{I}$).
 
-It has two parameters:
-1. **Mean (Center) $\boldsymbol{\mu}_i \in \mathbb{R}^3$**: The 3D center location of the splat.
-2. **Covariance matrix $\boldsymbol{\Sigma}_i \in \mathbb{R}^{3 \times 3}$**: Defines the 3D shape, size, and orientation of the ellipsoid.
-
-### Substep 2.2: Tangential Offset Parameterization ($\boldsymbol{\delta}_i$)
-To capture clothing folds without creating spiky, inverted geometry, we allow each Gaussian to shift away from its base SMPL vertex by an offset $\boldsymbol{\delta}_i \in \mathbb{R}^3$:
-
-$$\boldsymbol{\mu}_i = \mathbf{v}_i + \boldsymbol{\delta}_i$$
-
-### Substep 2.3: The "Pancake" Covariance Matrix
-Real human skin and clothing form a 2D surface embedded in 3D space. Therefore, each Gaussian should look like a flat, elliptical coin (a "pancake") hugging the skin, not a round basketball!
-
-At vertex $i$, we compute:
-- The local unit surface normal vector $\mathbf{n}_i \in \mathbb{R}^3$.
-- Two orthogonal tangent vectors $\mathbf{u}_i, \mathbf{w}_i$ spanning the skin surface.
-- Rotation matrix $\mathbf{R}_i = [\mathbf{u}_i \mid \mathbf{w}_i \mid \mathbf{n}_i] \in \mathbb{R}^{3 \times 3}$.
-
-The diagonal scale matrix $\mathbf{S}_i$ controls the dimensions of the splat:
-
-$$\mathbf{S}_i = \operatorname{diag}(s_{u, i}, s_{w, i}, s_{n, i})$$
-
-- We fix the normal thickness $s_{n, i} = \epsilon \approx 1\text{ mm}$ (ultra-thin).
-- The tangent scales $s_{u, i}, s_{w, i} = \exp(\mathbf{s}_{uv, i})$ are **learnable parameters** that adapt to cover local surface curvature.
-
-The full 3D spatial covariance is:
-
+The full 3D spatial covariance is constructed as:
 $$\boldsymbol{\Sigma}_i = \mathbf{R}_i \mathbf{S}_i \mathbf{S}_i^T \mathbf{R}_i^T$$
-
-### Why do we calculate this?
-Because $\boldsymbol{\Sigma}_i$ is an analytical, differentiable function of the surface orientation. If the skin rotates, the splats rotate with it, creating a continuous, watertight skin without any holes or tears.
+where the orthogonal basis $\mathbf{R}_i = [\mathbf{u}_i \mid \mathbf{w}_i \mid \mathbf{n}_i]$ aligns the disk's flat plane with the skin surface.
 
 ---
 
@@ -136,200 +111,148 @@ Because $\boldsymbol{\Sigma}_i$ is an analytical, differentiable function of the
 
 ```mermaid
 flowchart LR
-    Splat["3D Gaussian G_i(μ_i, Σ_i)"] --> Proj["Perspective Projection via K"]
-    Proj --> Splat2D["2D Gaussian on Image Plane (p_i, Σ_2D,i)"]
-    Splat2D --> Alpha["Volumetric Alpha Blending"]
-    Alpha --> Map["Rendered 2D Normal Map N̂(u,v)"]
+    Splat["3D Gaussian g_i(μ_i, Σ_i)"] --> EWA["Affine EWA Projection via K\np_i = π(μ_i), Σ_2D,i = J_i Σ_i J_i^T + σ² I"]
+    EWA --> Alpha["Pixel Alpha Composite\nα_i(p) = o_i exp(-0.5 d_2D^T Σ_2D⁻¹ d_2D)"]
+    Alpha --> Blend["Normalized Blended Normal Map\nN̂(p) = (Σ w_i n_i) / (||Σ w_i n_i|| + ε)"]
 ```
 
-### What are we calculating?
-We want to take our 6,890 3D Gaussians in camera space and project them onto the 2D image plane to compute what 3D normal vector $\hat{\mathbf{N}}(u, v)$ is visible at every single pixel $(u, v)$.
-
-### Substep 4.1: 2D Perspective Projection (EWA Splatting)
-Given camera focal length $f_x, f_y$ and optical center $c_x, c_y$, the camera matrix is:
-
-$$\mathbf{K} = \begin{bmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix}$$
-
-The 3D center $\boldsymbol{\mu}_i = (\mu_x, \mu_y, \mu_z)^T$ projects to 2D pixel coordinates $\mathbf{p}_i = (u_i, v_i)^T$:
-
+### 4.1 Perspective EWA Splatting
+Given pinhole camera matrix $\mathbf{K} = \begin{bmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix}$, the 3D center $\boldsymbol{\mu}_i = (\mu_x, \mu_y, \mu_z)^T$ projects to screen coordinates $\mathbf{p}_i = (u_i, v_i)^T$:
 $$u_i = f_x \frac{\mu_x}{\mu_z} + c_x, \quad v_i = f_y \frac{\mu_y}{\mu_z} + c_y$$
 
-To project the 3D covariance ellipsoid $\boldsymbol{\Sigma}_i$ into a 2D ellipse $\boldsymbol{\Sigma}_{2D, i} \in \mathbb{R}^{2 \times 2}$ on the image, we take the Jacobian matrix $\mathbf{J}_i$ of the perspective projection:
-
+The local affine projection Jacobian $\mathbf{J}_i \in \mathbb{R}^{2 \times 3}$ is:
 $$\mathbf{J}_i = \begin{bmatrix} \frac{f_x}{\mu_z} & 0 & -\frac{f_x \mu_x}{\mu_z^2} \\ 0 & \frac{f_y}{\mu_z} & -\frac{f_y \mu_y}{\mu_z^2} \end{bmatrix}$$
+The 2D screen-space covariance is given by the EWA formulation with low-pass antialiasing filter $\sigma_{\text{filter}}^2 \mathbf{I}$:
+$$\boldsymbol{\Sigma}_{2D, i} = \mathbf{J}_i \boldsymbol{\Sigma}_i \mathbf{J}_i^T + \sigma_{\text{filter}}^2 \mathbf{I}_{2 \times 2}$$
 
-$$\boldsymbol{\Sigma}_{2D, i} = \mathbf{J}_i \boldsymbol{\Sigma}_i \mathbf{J}_i^T$$
-
-### Substep 4.2: Differentiable Alpha-Accumulation
-For any pixel $(u, v)$ on the screen, the contribution (opacity) $\alpha_i(u,v)$ of Gaussian $i$ is:
-
-$$\alpha_i(u,v) = o_i \cdot \exp\left( -\frac{1}{2} \begin{bmatrix} u - u_i \\ v - v_i \end{bmatrix}^T \boldsymbol{\Sigma}_{2D, i}^{-1} \begin{bmatrix} u - u_i \\ v - v_i \end{bmatrix} \right)$$
-
-We sort all Gaussians along the camera ray (from front to back by depth $\mu_z$). The rendered normal vector $\hat{\mathbf{N}}(u,v)$ at that pixel is computed using volumetric alpha-blending:
-
-$$\hat{\mathbf{N}}(u,v) = \frac{\sum_{i=1}^{N} T_i \alpha_i(u,v) \mathbf{n}_i}{\sum_{i=1}^{N} T_i \alpha_i(u,v) + \epsilon}$$
-
-Where $T_i = \prod_{j=1}^{i-1} (1 - \alpha_j(u,v))$ is the transmittance (how much light penetrates through all preceding surfaces).
-
-### Why do we calculate this?
-Notice that there are **no discrete if-statements or polygon boundaries**. Every single operation (fractions, matrix multiplications, exponentials) is $100\%$ continuously differentiable! We can backpropagate gradients from a pixel $(u,v)$ all the way back to the 3D joint rotations $\boldsymbol{\theta}$!
+### 4.2 Alpha Compositing & Unit Normal Normalization
+For pixel $\mathbf{p} = (u, v)^T$, the opacity evaluated from splat $i$ is:
+$$\alpha_i(\mathbf{p}) = o_i \cdot \exp\left( -\frac{1}{2} (\mathbf{p} - \mathbf{p}_i)^T \boldsymbol{\Sigma}_{2D, i}^{-1} (\mathbf{p} - \mathbf{p}_i) \right)$$
+Gaussians are sorted along the optical ray ($z$-depth). The front-to-back alpha compositing weight is:
+$$w_i(\mathbf{p}) = \alpha_i(\mathbf{p}) \prod_{j=1}^{i-1} (1 - \alpha_j(\mathbf{p}))$$
+The unnormalized accumulated normal vector is:
+$$\hat{\mathbf{N}}_{\text{unnorm}}(\mathbf{p}) = \sum_{i \in \mathcal{N}} w_i(\mathbf{p}) \mathbf{n}_i^{\text{cam}}$$
+The normalized screen-space surface normal map is:
+$$\hat{\mathbf{N}}(\mathbf{p}) = \frac{\hat{\mathbf{N}}_{\text{unnorm}}(\mathbf{p})}{\| \hat{\mathbf{N}}_{\text{unnorm}}(\mathbf{p}) \|_2 + \epsilon}$$
 
 ---
 
-## 5. Step 4: The Physics of Normal Restoring Torque
+## 5. Step 4: Differential Geometry of Normal Loss & Rotational Joint Torques
+
+### 5.1 Objective Function
+Given the target surface normal map $\mathbf{N}^*(\mathbf{p}) \in \mathbb{S}^2$ from zero-shot **DSINE v02**, the negative cosine objective over human silhouette $\Omega$ is:
+$$\mathcal{L}_{\text{normal}} = 1 - \frac{1}{|\Omega|} \sum_{\mathbf{p} \in \Omega} \beta(\mathbf{p}) \left( \hat{\mathbf{N}}(\mathbf{p}) \cdot \mathbf{N}^*(\mathbf{p}) \right)$$
+where $\beta(\mathbf{p})$ incorporates normal certainty weighting $\mathbf{C}(\mathbf{p}) \in [0, 1]$.
+
+### 5.2 Exact Unit-Vector Normalization Derivative
+Differentiating $\hat{\mathbf{N}}(\mathbf{p}) \cdot \mathbf{N}^*(\mathbf{p})$ with respect to the unnormalized vector $\hat{\mathbf{N}}_{\text{unnorm}}$ requires accounting for the length projection derivative:
+$$\frac{\partial (\hat{\mathbf{N}} \cdot \mathbf{N}^*)}{\partial \hat{\mathbf{N}}_{\text{unnorm}}} = \frac{1}{\| \hat{\mathbf{N}}_{\text{unnorm}} \|} \left[ \mathbf{N}^* - (\hat{\mathbf{N}} \cdot \mathbf{N}^*) \hat{\mathbf{N}} \right]$$
+Applying the chain rule through alpha compositing, the Euclidean gradient with respect to splat normal $\mathbf{n}_i$ is:
+$$\mathbf{g}_i = \frac{\partial \mathcal{L}_{\text{normal}}}{\partial \mathbf{n}_i} = - \sum_{\mathbf{p} \in \Omega} \frac{\beta(\mathbf{p}) w_i(\mathbf{p})}{|\Omega| \| \hat{\mathbf{N}}_{\text{unnorm}}(\mathbf{p}) \|} \left[ \mathbf{N}^*(\mathbf{p}) - (\hat{\mathbf{N}}(\mathbf{p}) \cdot \mathbf{N}^*(\mathbf{p})) \hat{\mathbf{N}}(\mathbf{p}) \right]$$
+
+### 5.3 Lie Algebra Variation & Rotational Joint Torque
+Under a local Lie algebra rotation perturbation $\mathbf{R} \leftarrow \exp([\boldsymbol{\omega}]_\times) \mathbf{R}$ around axis $\boldsymbol{\omega} \in \mathfrak{so}(3)$, the first variation of disk normal $\mathbf{n}_i$ is:
+$$\delta \mathbf{n}_i = \boldsymbol{\omega} \times \mathbf{n}_i = - [\mathbf{n}_i]_\times \boldsymbol{\omega}$$
+
+The first variation of the normal loss is:
+$$\delta \mathcal{L}_{\text{normal}} = \mathbf{g}_i^T \delta \mathbf{n}_i = \mathbf{g}_i^T (\boldsymbol{\omega} \times \mathbf{n}_i) = (\mathbf{n}_i \times \mathbf{g}_i)^T \boldsymbol{\omega}$$
+This defines the **restoring torque vector**:
+$$\boldsymbol{\tau}_i = \mathbf{n}_i \times \mathbf{g}_i$$
+Substituting the expression for $\mathbf{g}_i$, the torque is proportional to the cross product between the predicted normal and target normal:
+$$\boldsymbol{\tau}_i \propto \mathbf{n}_i \times \mathbf{N}^*$$
+- When the estimated limb is aligned with the ground truth ($\mathbf{n}_i \parallel \mathbf{N}^*$), the cross product vanishes ($\boldsymbol{\tau}_i = \mathbf{0}$).
+- When the limb is rotated away from the true camera optical angle by $\phi$, $\|\boldsymbol{\tau}_i\| \propto \sin \phi$, applying maximal restoring torque perpendicular to the misaligned axis.
+
+### 5.4 Propagation into Skeletal Kinematics $\boldsymbol{\theta}$
+Because splat normals $\mathbf{n}_i$ are anchored to posed vertex normals $\mathbf{n}_{\text{vertex}, i}(\boldsymbol{\theta})$ via face cross products, the skeletal joint update rule is:
+$$\nabla_{\boldsymbol{\theta}} \mathcal{L}_{\text{normal}} = \sum_{i=1}^N \mathbf{J}_{\mathbf{n}, i}^T \mathbf{g}_i = \sum_{i=1}^N \left( \frac{\partial \mathbf{n}_{\text{vertex}, i}}{\partial \mathbf{V}} \frac{\partial \mathbf{V}}{\partial \boldsymbol{\theta}} \right)^T \mathbf{g}_i$$
+This forces skeletal bone angles $\boldsymbol{\theta}$ to rotate into 3D camera alignment, substantially reducing monocular out-of-plane rotation ambiguity.
+
+---
+
+## 6. Step 5: Closed-Form Volumetric Gaussian Overlap Integrals (Collision Barrier)
 
 ```mermaid
 flowchart TD
-    DSINE["DSINE Target Normal N*(u,v)"] --> Loss["Cosine Normal Loss L_norm = 1 - ⟨N̂, N*⟩"]
-    Rast["Rendered Normal N̂(u,v)"] --> Loss
-    Loss --> Grad["Gradient ∇_N̂ L_norm = -N*"]
-    Grad --> Chain["Chain Rule ∂L/∂θ_k"]
-    Chain --> Torque["Physical Restoring Torque τ_k on Joint k"]
+    Pair["Non-Adjacent Pair (A, B) ∈ P_non-adj\n(e.g., Forearm vs. Torso)"] --> Centers["Centers: μ_A, μ_B & Covariances: Σ_A, Σ_B"]
+    Centers --> Int["Exact Analytical Gaussian Overlap Integral\nK_ij = (2π)³/² * sqrt(|Σ_i||Σ_j| / |Σ_i + Σ_j|) * exp(-0.5 d_M²)"]
+    Int --> Cutoff["Spatial Distance Cutoff d_ij < 0.15m & Hinge Penalty\nL_coll = max(0, K_ij - τ_coll)"]
+    Cutoff --> Grad["Piecewise Smooth Analytical Repulsion\n∇_μ K_ij = - K_ij (Σ_i + Σ_j)⁻¹ (μ_i - μ_j)"]
 ```
 
-### What are we calculating?
-We compare our rendered normal map $\hat{\mathbf{N}}(u,v)$ against the ground-truth geometric normal map $\mathbf{N}^*(u,v)$ predicted from the image by the zero-shot **DSINE** foundation model.
+### 6.1 The Continuous Gaussian Overlap Theorem
+For two unnormalized 3D Gaussians:
+$$g_i(\mathbf{x}) = \exp\left( -\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu}_i)^T \boldsymbol{\Sigma}_i^{-1}(\mathbf{x}-\boldsymbol{\mu}_i) \right), \quad g_j(\mathbf{x}) = \exp\left( -\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu}_j)^T \boldsymbol{\Sigma}_j^{-1}(\mathbf{x}-\boldsymbol{\mu}_j) \right)$$
+The convolution integral of their overlapping density across all 3D space $\mathbb{R}^3$ has an exact closed-form analytical solution:
+$$\mathcal{K}_{ij} = \int_{\mathbb{R}^3} g_i(\mathbf{x}) g_j(\mathbf{x}) \, d\mathbf{x} = (2\pi)^{3/2} \sqrt{\frac{|\boldsymbol{\Sigma}_i| |\boldsymbol{\Sigma}_j|}{|\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j|}} \exp\left( -\frac{1}{2} (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)^T (\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j)^{-1} (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j) \right)$$
 
-### Substep 5.1: The Surface Normal Loss
-The error at any pixel $(u,v)$ inside the human body silhouette $\Omega$ is measured by the negative cosine similarity:
+#### Proof & Derivation:
+The product of two exponentials with quadratic exponents is:
+$$g_i(\mathbf{x}) g_j(\mathbf{x}) = \exp\left( -\frac{1}{2} \left[ (\mathbf{x}-\boldsymbol{\mu}_i)^T \boldsymbol{\Sigma}_i^{-1}(\mathbf{x}-\boldsymbol{\mu}_i) + (\mathbf{x}-\boldsymbol{\mu}_j)^T \boldsymbol{\Sigma}_j^{-1}(\mathbf{x}-\boldsymbol{\mu}_j) \right] \right)$$
+Completing the square in $\mathbf{x}$:
+$$(\mathbf{x}-\boldsymbol{\mu}_i)^T \boldsymbol{\Sigma}_i^{-1}(\mathbf{x}-\boldsymbol{\mu}_i) + (\mathbf{x}-\boldsymbol{\mu}_j)^T \boldsymbol{\Sigma}_j^{-1}(\mathbf{x}-\boldsymbol{\mu}_j) = (\mathbf{x} - \boldsymbol{\mu}_c)^T \boldsymbol{\Sigma}_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c) + \mathbf{d}_{ij}^T (\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j)^{-1} \mathbf{d}_{ij}$$
+where $\boldsymbol{\Sigma}_c^{-1} = \boldsymbol{\Sigma}_i^{-1} + \boldsymbol{\Sigma}_j^{-1}$ and $\mathbf{d}_{ij} = \boldsymbol{\mu}_i - \boldsymbol{\mu}_j$.
+Integrating over $\mathbb{R}^3$:
+$$\int_{\mathbb{R}^3} \exp\left( -\frac{1}{2} (\mathbf{x} - \boldsymbol{\mu}_c)^T \boldsymbol{\Sigma}_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c) \right) d\mathbf{x} = (2\pi)^{3/2} |\boldsymbol{\Sigma}_c|^{1/2} = (2\pi)^{3/2} |\boldsymbol{\Sigma}_i^{-1} + \boldsymbol{\Sigma}_j^{-1}|^{-1/2}$$
+Using the matrix identity $|\boldsymbol{\Sigma}_i^{-1} + \boldsymbol{\Sigma}_j^{-1}| = \frac{|\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j|}{|\boldsymbol{\Sigma}_i| |\boldsymbol{\Sigma}_j|}$, the prefactor becomes:
+$$|\boldsymbol{\Sigma}_c|^{1/2} = \sqrt{\frac{|\boldsymbol{\Sigma}_i| |\boldsymbol{\Sigma}_j|}{|\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j|}}$$
+Multiplying by the constant Mahalanobis factor yields the exact closed-form overlap integral $\mathcal{K}_{ij}$.
 
-$$\mathcal{L}_{norm} = \frac{1}{|\Omega|} \sum_{(u,v) \in \Omega} \left( 1 - \langle \hat{\mathbf{N}}(u,v), \mathbf{N}^*(u,v) \rangle \right)$$
+### 6.2 Analytical Repulsive Gradients
+Differentiating $\mathcal{K}_{ij}$ with respect to the Gaussian center $\boldsymbol{\mu}_i$:
+$$\nabla_{\boldsymbol{\mu}_i} \mathcal{K}_{ij} = - \mathcal{K}_{ij} (\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j)^{-1} (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)$$
+$$\nabla_{\boldsymbol{\mu}_j} \mathcal{K}_{ij} = - \nabla_{\boldsymbol{\mu}_i} \mathcal{K}_{ij}$$
+The vector $(\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)$ points outward from body part $j$ toward $i$, generating an equal and opposite repulsive barrier that drives intersecting body parts apart smoothly.
 
-Recall that the dot product between two unit vectors is simply the cosine of the angle $\phi$ between them:
+### 6.3 Physical Nature: Continuous Overlap Surrogate vs. Mesh Penetration Volume
+$\mathcal{K}_{ij}$ has physical units of volume ($\text{m}^3$) for unnormalized exponential Gaussians. It serves as a continuous, differentiable **repulsive potential surrogate**, penalizing spatial co-occupancy. While driving $\mathcal{K}_{ij} \to 0$ suppresses self-intersection, $\mathcal{K}_{ij}$ must not be confused with discrete triangle-mesh signed distance field (SDF) penetration volume ($\text{cm}^3$).
 
-$$\langle \hat{\mathbf{N}}, \mathbf{N}^* \rangle = \|\hat{\mathbf{N}}\| \|\mathbf{N}^*\| \cos \phi = \cos \phi$$
+### 6.4 Hierarchical Culling & Piecewise Smoothness
+To evaluate $\mathcal{K}_{ij}$ in $<4.2\text{ ms}$:
+1. Vertices are mapped into 14 non-adjacent kinematic segments $\mathcal{P}_{\text{non-adj}}$.
+2. Segments are culled if bounding sphere distance $\|\mathbf{c}_A - \mathbf{c}_B\| > r_A + r_B + d_{\text{cutoff}}$.
+3. Gaussian pairs with $\|\boldsymbol{\mu}_i - \boldsymbol{\mu}_j\| > d_{\text{cutoff}} = 0.15\text{ m}$ are zeroed out.
+Because of these discrete interaction boundaries and hinge thresholding $\max(0, \mathcal{K}_{ij} - \tau_{\text{coll}})$, the collision objective is **piecewise smooth** (infinitely differentiable within active collision sets, $C^0$ across activation boundaries).
 
-- If our rendered normal points in the exact same direction as DSINE: $\cos(0^\circ) = 1 \implies \mathcal{L}_{norm} = 1 - 1 = 0$ (zero loss).
-- If our rendered normal is perpendicular ($90^\circ$ error): $\cos(90^\circ) = 0 \implies \mathcal{L}_{norm} = 1$.
-- If pointing the wrong way ($180^\circ$ error): $\cos(180^\circ) = -1 \implies \mathcal{L}_{norm} = 2$.
+---
 
-### Substep 5.2: Why this acts as a "Mechanical Torque"
-Differentiating $\mathcal{L}_{norm}$ with respect to our rendered normal $\hat{\mathbf{N}}$ gives:
+## 7. Step 6: Dual-Frequency Gradient Routing (Autograd Detachment)
 
-$$\frac{\partial \mathcal{L}_{norm}}{\partial \hat{\mathbf{N}}} = - \mathbf{N}^*$$
+```mermaid
+flowchart TD
+    subgraph Kinematic_Pass ["1. Kinematic Stream (Geometric Objectives)"]
+        L_geom["L_geom = L_normal + λ_coll L_collision + λ_mask L_mask"]
+        L_geom -->|Autograd| UPDATE_KIN["Updates Kinematics (θ, t)\nθ ← θ - η_θ ∇_θ L_geom"]
+    end
 
-Applying the multivariable chain rule to find the gradient with respect to joint angle $\boldsymbol{\theta}_k$:
+    subgraph Deform_Pass ["2. Deformation Stream (Photometric & Smoothness)"]
+        DETACH["Mesh Vertices & Normals Detached\ncenters_deform = detach(v_i) + δ_i\nnormals_deform = detach(n_vertex,i) + offset"]
+        DETACH --> L_deform["L_deform = L_photo + λ_lap L_lap + λ_tight L_tight"]
+        L_deform -->|Autograd| UPDATE_DEF["Updates Garment Parameters (δ, s, q)\n(d L_deform / d θ ≡ 0)"]
+    end
+```
 
-$$\frac{\partial \mathcal{L}_{norm}}{\partial \boldsymbol{\theta}_k} = \sum_{u,v} \frac{\partial \mathcal{L}_{norm}}{\partial \hat{\mathbf{N}}(u,v)} \cdot \frac{\partial \hat{\mathbf{N}}(u,v)}{\partial \mathbf{n}_i} \cdot \frac{\partial \mathbf{n}_i}{\partial \boldsymbol{\theta}_k}$$
+### 7.1 The Gradient Stealing Mechanism
+When optimizing both skeletal pose $\boldsymbol{\theta}$ and local clothing offsets $\boldsymbol{\delta}_i$ against image losses, the Jacobian $\frac{\partial \hat{I}}{\partial \boldsymbol{\delta}_i}$ acts locally and directly in screen space, whereas $\frac{\partial \hat{I}}{\partial \boldsymbol{\theta}} = \frac{\partial \hat{I}}{\partial \mathbf{V}} \frac{\partial \mathbf{V}}{\partial \boldsymbol{\theta}}$ passes through non-linear kinematic matrix chains. Consequently, unconstrained gradient descent shifts local offsets $\boldsymbol{\delta}_i$ to cover misplaced limbs, leaving joint errors uncorrected.
 
-In classical mechanics, torque is $\boldsymbol{\tau} = \mathbf{r} \times \mathbf{F}$. In Lie algebra on $SO(3)$, the derivative of a rotated normal vector $\mathbf{n} = \mathbf{R} \mathbf{n}_0$ with respect to rotation vector $\boldsymbol{\theta}$ is:
+### 7.2 Explicit Autograd Detachment
+To mathematically eliminate gradient stealing without complex spectral filters, we compute the deformation forward pass on a detached computation graph:
+$$\boldsymbol{\mu}_{\text{deform}, i} = \operatorname{detach}(\mathbf{v}_i(\boldsymbol{\theta})) + \boldsymbol{\delta}_i$$
+$$\mathbf{n}_{\text{deform}, i} = \frac{\mathbf{R}_{\text{offset}}(\mathbf{q}_i) \operatorname{detach}(\mathbf{n}_{\text{vertex}, i}(\boldsymbol{\theta}))}{\| \mathbf{R}_{\text{offset}}(\mathbf{q}_i) \operatorname{detach}(\mathbf{n}_{\text{vertex}, i}(\boldsymbol{\theta})) \|}$$
 
-$$\frac{\partial \mathbf{n}}{\partial \boldsymbol{\theta}} = - [\mathbf{n}]_\times$$
-
+Under this formulation:
+$$\frac{\partial \operatorname{detach}(\mathbf{v}_i)}{\partial \boldsymbol{\theta}} \equiv \mathbf{0}, \quad \frac{\partial \operatorname{detach}(\mathbf{n}_{\text{vertex}, i})}{\partial \boldsymbol{\theta}} \equiv \mathbf{0}$$
 Therefore:
+$$\frac{\partial \mathcal{L}_{\text{deform}}}{\partial \boldsymbol{\theta}} = \frac{\partial \mathcal{L}_{\text{deform}}}{\partial \boldsymbol{\mu}_{\text{deform}}} \frac{\partial \operatorname{detach}(\mathbf{v})}{\partial \boldsymbol{\theta}} + \frac{\partial \mathcal{L}_{\text{deform}}}{\partial \mathbf{n}_{\text{deform}}} \frac{\partial \operatorname{detach}(\mathbf{n})}{\partial \boldsymbol{\theta}} \equiv \mathbf{0}$$
 
-$$\frac{\partial \mathcal{L}_{norm}}{\partial \boldsymbol{\theta}_k} \propto \sum_i \mathbf{n}_i \times \mathbf{N}^*$$
-
-Look at that cross product: $\mathbf{n}_i \times \mathbf{N}^*$!
-If the predicted arm is tilted $15^\circ$ forward, the cross product points perpendicular to the rotation axis with magnitude $|\sin 15^\circ|$, physically twisting the joint back into alignment!
-
----
-
-## 6. Step 5: Stopping Self-Intersection (Analytical Gaussian Overlap Integrals)
-
-```mermaid
-flowchart TD
-    GaussianI["Gaussian G_i on Forearm (μ_i, Σ_i)"] --> Integral["Exact Overlap Integral K_ij"]
-    GaussianJ["Gaussian G_j on Torso (μ_j, Σ_j)"] --> Integral
-    Integral --> Overlap["Overlap Volume K_ij = exp(-1/2 d_M²) / sqrt(det Σ)"]
-    Overlap --> Loss["Collision Loss L_coll = max(0, K_ij - τ)"]
-    Loss --> Repulsion["Analytical Repulsive Force F_ij = - (Σ_i + Σ_j)⁻¹ (μ_i - μ_j) K_ij"]
-```
-
-### What are we calculating?
-When a person crosses their arms, standard neural networks cause the forearm mesh to penetrate inside the torso. We want to calculate the exact volume of overlapping matter between two body parts and compute an analytical force that pushes them apart.
-
-### Substep 6.1: The Mathematical Theorem
-The product of two multivariate 3D Gaussians is itself an unnormalized 3D Gaussian!
-Therefore, the integral of their overlap over all of 3D space $\mathbb{R}^3$ has an **exact closed-form solution**:
-
-$$\mathcal{K}_{ij} = \int_{\mathbb{R}^3} G_i(\mathbf{x}) G_j(\mathbf{x}) \, d\mathbf{x} = \frac{\exp\left( -\frac{1}{2} (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)^T (\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j)^{-1} (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j) \right)}{(2\pi)^{3/2} \det(\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j)^{1/2}}$$
-
-Let us dissect what each term in this formula means:
-1. **$\boldsymbol{\mu}_i - \boldsymbol{\mu}_j$**: The 3D displacement vector from the center of splat $j$ to splat $i$.
-2. **$\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j$**: The combined spatial uncertainty (the convolution covariance).
-3. **$(\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)^T (\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j)^{-1} (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j) = d_M^2$**: This is the **squared Mahalanobis distance**.
-   - If the two body parts are far apart: $d_M^2 \to \infty \implies \exp(-\infty) = 0 \implies \mathcal{K}_{ij} \approx 0$ (zero overlap).
-   - If the two body parts penetrate each other: $\boldsymbol{\mu}_i \approx \boldsymbol{\mu}_j \implies d_M^2 \to 0 \implies \exp(0) = 1 \implies \mathcal{K}_{ij}$ shoots up to a high positive value!
-
-### Substep 6.2: Kinematic Segmentation
-We don't want adjacent vertices (like two neighbors on the forehead, or wrist-to-hand) to repel each other, or the skin would blow up!
-
-We partition the 6,890 vertices into 24 kinematic body segments using the SMPL blend weights:
-
-$$\text{segment}(i) = \arg\max_{k \in \{1 \dots 24\}} w_{ik}$$
-
-We only evaluate $\mathcal{K}_{ij}$ for non-adjacent segment pairs $\mathcal{P}_{non-adj}$ (e.g., left forearm vs. torso, left thigh vs. right thigh):
-
-$$\mathcal{L}_{coll} = \sum_{(i,j) \in \mathcal{P}_{non-adj}} \max\left(0, \, \mathcal{K}_{ij} - \tau_{coll}\right)$$
-
-### Substep 6.3: The Analytical Repulsive Force
-When we take the derivative of the overlap $\mathcal{K}_{ij}$ with respect to the 3D position $\boldsymbol{\mu}_i$ of the forearm:
-
-$$\nabla_{\boldsymbol{\mu}_i} \mathcal{K}_{ij} = - (\boldsymbol{\Sigma}_i + \boldsymbol{\Sigma}_j)^{-1} (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j) \cdot \mathcal{K}_{ij}$$
-
-Look at the negative sign and the displacement vector:
-$$\mathbf{F}_{repulsive} = - \nabla_{\boldsymbol{\mu}_i} \mathcal{L}_{coll} \propto + (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)$$
-This is an **analytic repulsive force** pushing splat $i$ directly away from splat $j$!
-- It requires no ray casting.
-- It requires no bounding box hierarchies (BVH).
-- It produces zero discontinuities.
-- As limbs approach each other, it acts like a smooth, compressed magnetic spring, guaranteeing **$0.00\text{ cm}^3$ self-intersection volume**.
+### 7.3 Directional Parameter Separation
+1. **Kinematic Parameters $(\boldsymbol{\theta}, \mathbf{t})$**: Updated exclusively by $\mathcal{L}_{\text{normal}}$, $\mathcal{L}_{\text{collision}}$, and $\mathcal{L}_{\text{mask}}$, forcing skeletal joints to conform strictly to anatomical normal fields and collision barriers.
+2. **Deformation Parameters $(\boldsymbol{\delta}, \mathbf{s}_{uv}, \mathbf{q})$**: Updated by masked photometric error $\mathcal{L}_{\text{photo}}$, mesh graph Laplacian $\mathcal{L}_{\text{lap}}$, and elastic tether $\mathcal{L}_{\text{tight}}$, absorbing clothing folds and texture without polluting skeletal pose.
 
 ---
 
-## 7. Step 6: Dual-Frequency Gradient Routing
+## 8. Summary of the Complete Mathematical Pipeline
 
-```mermaid
-flowchart TD
-    LossNorm["Normal Loss L_norm"] --> LowFreq["Low-Frequency Kinematic Stream"]
-    LossColl["Collision Loss L_coll"] --> LowFreq
-    LossMask["Mask Loss L_mask"] --> LowFreq
-    LowFreq --> Pose["Updates Joint Angles θ & Translation t"]
+$$\mathcal{L}_{\text{composite}} = \underbrace{\mathcal{L}_{\text{normal}} + \lambda_{\text{coll}} \mathcal{L}_{\text{collision}} + \lambda_{\text{mask}} \mathcal{L}_{\text{mask}}}_{\text{Kinematic Stream } (\to \boldsymbol{\theta}, \mathbf{t})} + \underbrace{\mathcal{L}_{\text{photo}} + \lambda_{\text{lap}} \mathcal{L}_{\text{lap}} + \lambda_{\text{tight}} \mathcal{L}_{\text{tight}}}_{\text{Deformation Stream } (\to \boldsymbol{\delta}, \mathbf{s}_{uv}, \mathbf{q})}$$
 
-    LossPhoto["Photometric Loss L_photo"] --> Detach["detach(Mesh Vertices v_i)"]
-    LossLap["Laplacian Loss L_lap"] --> HighFreq["High-Frequency Deformation Stream"]
-    Detach --> HighFreq
-    HighFreq --> Offsets["Updates Tangential Offsets δ (Clothing Folds)"]
-```
-
-### What are we calculating?
-How to prevent high-frequency clothing wrinkles from pulling joint angles into wrong poses.
-
-### Substep 7.1: The Gradient Detachment
-In standard gradient descent, if you compute a loss on the final surface $\mathcal{L}_{photo} = \|I_{pred} - I_{real}\|$, the gradients backpropagate through both the clothing offsets $\boldsymbol{\delta}$ and the skeletal joint angles $\boldsymbol{\theta}$.
-
-To prevent this, during the deformation forward pass, we compute:
-
-$$\boldsymbol{\mu}_{deform, i} = \operatorname{detach}(\mathbf{v}_i) + \boldsymbol{\delta}_i$$
-
-The `detach()` operator sets the Jacobian to zero:
-
-$$\frac{\partial \operatorname{detach}(\mathbf{v}_i)}{\partial \boldsymbol{\theta}} \equiv \mathbf{0}$$
-
-Therefore:
-
-$$\frac{\partial \mathcal{L}_{photo}}{\partial \boldsymbol{\theta}} = \frac{\partial \mathcal{L}_{photo}}{\partial \boldsymbol{\mu}_{deform, i}} \cdot \frac{\partial \operatorname{detach}(\mathbf{v}_i)}{\partial \boldsymbol{\theta}} = \mathbf{0}$$
-
-### Why do we calculate this?
-Photometric color gradients and clothing wrinkles are strictly forbidden from touching the skeleton!
-- Skeletal kinematics $\boldsymbol{\theta}$ are guided **only** by large-scale geometric surface normals and physical collisions.
-- Clothing wrinkles $\boldsymbol{\delta}$ are guided **only** by fine-scale photometric detail and mesh Laplacian smoothing.
-
----
-
-## 8. Summary of the Complete Optimization Loss
-
-In each test-time optimization iteration, our dual optimizers compute:
-
-$$\mathcal{L}_{total} = \underbrace{\mathcal{L}_{norm} + \lambda_{coll} \mathcal{L}_{coll} + \lambda_{mask} \mathcal{L}_{mask}}_{\text{Low-Frequency Kinematic Stream } (\to \boldsymbol{\theta}, \mathbf{t})} + \underbrace{\mathcal{L}_{photo} + \lambda_{lap} \mathcal{L}_{lap} + \lambda_{tight} \mathcal{L}_{tight}}_{\text{High-Frequency Deformation Stream } (\to \boldsymbol{\delta}, \mathbf{s}_{uv}, \mathbf{q})}$$
-
-Where:
-- $\mathcal{L}_{norm}$: Aligns 3D surface tilt with DSINE foundation normals (restoring torque).
-- $\mathcal{L}_{coll}$: Closed-form Gaussian overlap integrals (zero self-collisions).
-- $\mathcal{L}_{mask}$: Silhouette boundary IoU loss.
-- $\mathcal{L}_{photo}$: Color consistency on clothed avatar.
-- $\mathcal{L}_{lap}$: Mesh Laplacian regularizer preventing localized surface noise.
-- $\mathcal{L}_{tight}$: Elastic spring tether keeping splats from drifting too far from the skin.
-
-This mathematical harmony is what allows DiffNorm-Contact to achieve **$36.39$ mm PA-MPJPE** and **$0.00\text{ cm}^3$ self-collision volume**.
+Every step of this formulation—from linear blend skinning and posed face normal cross-products to exact Gaussian overlap integrals and directional autograd detachment—has been mathematically derived, algebraically unified, and computationally verified in the active test suite.

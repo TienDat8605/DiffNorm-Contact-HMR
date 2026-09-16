@@ -72,8 +72,7 @@ class CoarsePoseHMR2(nn.Module):
         self,
         images: torch.Tensor,  # (B, 3, 256, 256) in [0, 1]
         intrinsics: Optional[torch.Tensor] = None,  # (B, 3, 3)
-        keypoints_2d: Optional[torch.Tensor] = None,  # (B, J, 2)
-        gt_theta: Optional[torch.Tensor] = None,  # Optional coarse guide
+        keypoints_2d: Optional[torch.Tensor] = None  # (B, J, 2)
     ) -> Dict[str, torch.Tensor]:
         """
         Runs feed-forward coarse pose estimation.
@@ -93,20 +92,17 @@ class CoarsePoseHMR2(nn.Module):
                     "theta": out["pred_smpl_params"]["body_pose"].view(B, 24, 3),
                     "beta": out["pred_smpl_params"]["betas"][:, :10],
                     "trans": out["pred_cam_t"],
+                    "is_coarse": True,
+                    "source": "4D-Humans-HMR2.0"
                 }
 
-        # Kinematic lifting fallback (Fast, verified, robust for local prototyping)
-        # Initializes plausible natural pose with realistic depth scale
-        if gt_theta is not None:
-            # Seed with coarse noisy estimate (simulates ~68mm HMR 2.0 output)
-            theta = gt_theta.clone().to(self.device)
-        else:
-            theta = torch.zeros(B, 24, 3, device=self.device)
-            # Gentle standing articulation
-            theta[:, 1, 2] = 0.1   # Slight hip flexion
-            theta[:, 2, 2] = -0.1
-            theta[:, 16, 2] = 0.2  # Slight shoulder abduction
-            theta[:, 17, 2] = -0.2
+        # Kinematic unposed natural prior fallback (Zero ground-truth dependence)
+        # Initializes canonical standing posture with realistic depth scale (~2.8m)
+        theta = torch.zeros(B, 24, 3, device=self.device)
+        theta[:, 1, 2] = 0.05   # Slight hip rest angle
+        theta[:, 2, 2] = -0.05
+        theta[:, 16, 2] = 0.15  # Slight shoulder abduction
+        theta[:, 17, 2] = -0.15
 
         beta = torch.zeros(B, 10, device=self.device)
         trans = torch.tensor([[0.0, 0.2, 2.8]], device=self.device).repeat(B, 1)

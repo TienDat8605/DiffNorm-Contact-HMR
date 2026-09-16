@@ -123,11 +123,12 @@ class DualFrequencyGradientRouter(nn.Module):
         # -------------------------------------------------------------
         smpl_out = self.smpl(theta=theta, trans=trans)
         verts = smpl_out["vertices"][0]  # (N, 3)
+        mesh_normals = smpl_out["normals"][0]  # (N, 3)
 
-        # Centers with full autograd history to theta
+        # Centers and normals with full autograd history to theta
         centers_cam = self.gaussians.get_centers(verts, detach_mesh=False)  # (N, 3)
         covs = self.gaussians.get_spatial_covariances()                     # (N, 3, 3)
-        normals = self.gaussians.get_surface_normals(R_cam=R_cam)           # (N, 3)
+        normals = self.gaussians.get_surface_normals(mesh_normals=mesh_normals, R_cam=R_cam) # (N, 3)
         colors = self.gaussians.colors                                      # (N, 3)
         opacities = self.gaussians.get_opacities()                         # (N, 1)
 
@@ -157,15 +158,16 @@ class DualFrequencyGradientRouter(nn.Module):
             loss_geom.backward(retain_graph=True)
 
         # -------------------------------------------------------------
-        # 2. Deformation Stream: Forward Pass with Detached Mesh Vertices
+        # 2. Deformation Stream: Forward Pass with Detached Mesh Vertices & Normals
         # -------------------------------------------------------------
-        # Detach mesh vertices so d(loss_deform) / d(theta) == 0
+        # Detach mesh vertices and normals so d(loss_deform) / d(theta) == 0
         centers_detached = self.gaussians.get_centers(verts, detach_mesh=True)
+        normals_detached = self.gaussians.get_surface_normals(mesh_normals=mesh_normals.detach(), R_cam=R_cam)
 
         render_deform = self.rasterizer(
             centers_cam=centers_detached,
             covs_cam=covs,
-            normals_cam=normals,
+            normals_cam=normals_detached,
             colors=colors,
             opacities=opacities,
             K=K

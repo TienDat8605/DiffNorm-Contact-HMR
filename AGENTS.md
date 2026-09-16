@@ -48,6 +48,21 @@
     3. Real-time stderr logs for unexpected warnings or runtime bottlenecks.
 - **Fail-Fast & Anti-Idle Policy**:
   - **Stop Fast on Failure**: If the training script crashes, exits with a non-zero code, produces NaNs/divergence, or hangs indefinitely without progress, immediately terminate the execution (`colab restart-kernel -s <name>` or task termination).
-  - **No Unattended Idling**: Never allow a failing or hung GPU session to sit idle burning compute units. Intervene immediately, capture the error traceback, and inform the user.
+## Scientific Report & Document Writing Style (MANDATORY: Professional Review Format)
+- **Reference Standard**: All reports, monographs, technical audits, and research notes MUST follow the rigorous, objective, and mathematically precise structure demonstrated in [`documents/md/reviews/diffnorm_mathematical_review.md`](documents/md/reviews/diffnorm_mathematical_review.md).
+- **Core Principles**:
+  1. **Executive Audit Table**: Begin with an executive audit table contrasting areas, verdicts (e.g., *Correct*, *Incomplete*, *Flawed*, *Overclaim*), and concise root causes.
+  2. **Mathematical Precision & Consistent Conventions**: State explicit mathematical definitions, index bounds, dimensions (e.g. $\boldsymbol{\theta} \in \mathbb{R}^{24 \times 3}$), and normalization factors. Never mix normalized probability densities with unnormalized exponential Gaussian kernels.
+  3. **Rigorous Differentiation & Lie Group Formulations**: Avoid hand-wavy infinitesimal shortcuts (e.g. do not equate Lie algebra generators at $\boldsymbol{\theta} = \mathbf{0}$ with finite $3 \times 3$ rotation Jacobians). Include full projection and normalization derivatives for unit-vector objectives ($\hat{\mathbf{N}} \cdot \mathbf{N}^*$).
+  4. **Uncompromising Scientific Honesty & Nuance**:
+     - Do not equate continuous surrogate kernel overlaps with physical triangle mesh penetration volumes ($\text{cm}^3$). State explicitly when a quantity is a surrogate proxy.
+     - Never label small-sample sanity checks (e.g. 10 frames) or synthetic noise fallbacks as full benchmark evaluations (e.g. official 3DPW, RICH, or CAPE).
+     - Replace hyperbole (*"eliminates Bas-relief"*, *"infinitely differentiable"*, *"strict spectral decomposition"*) with precise physical and algorithmic realities (*"reduces out-of-plane rotation ambiguity"*, *"piecewise smooth within active culling thresholds"*, *"explicit autograd gradient detachment"*).
+  5. **Structured Actionable Layout**: Organize sections systematically into:
+     - `## 1. Executive Audit`
+     - `## 2. Theoretical & Mathematical Formulations (Correct Parts vs. Required Corrections)`
+     - `## 3. Implementation & Algorithmic Reality`
+     - `## 4. Empirical Benchmarks & Limitations`
+     - `## 5. High-Priority Actionable Repairs / To-Do List`
 
 

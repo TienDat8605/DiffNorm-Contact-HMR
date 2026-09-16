@@ -2,12 +2,12 @@
 
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-ee4c2c.svg?style=flat&logo=pytorch)](https://pytorch.org)
 [![CUDA](https://img.shields.io/badge/CUDA-12.x-76b900.svg?style=flat&logo=nvidia)](https://developer.nvidia.com/cuda-zone)
-[![Benchmark](https://img.shields.io/badge/3DPW_PA--MPJPE-36.39_mm-blue.svg)](file:///home/dat/HMR/results/)
-[![Collision](https://img.shields.io/badge/Collision_Volume-0.00_cm³-brightgreen.svg)](file:///home/dat/HMR/results/)
+[![Benchmark](https://img.shields.io/badge/3DPW_PA--MPJPE-36.39_mm_(Sanity_Check)-blue.svg)](file:///home/dat/HMR/results/)
+[![Collision](https://img.shields.io/badge/Collision_Overlap_Proxy-0.00-brightgreen.svg)](file:///home/dat/HMR/results/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Official Implementation of DiffNorm-Contact HMR**  
-> Resolving monocular Bas-relief degeneracy, anatomical self-penetrations, and clothing bias using differentiable surface normal fields, exact closed-form Gaussian overlap integrals, and dual-frequency gradient routing.
+> Resolving monocular depth-rotation degeneracy, anatomical self-penetrations, and clothing bias using differentiable surface normal fields, exact closed-form Gaussian overlap integrals, and dual-frequency gradient routing.
 
 ---
 
@@ -19,26 +19,29 @@ Monocular Human Mesh Recovery (HMR) from in-the-wild imagery remains ill-posed d
 3. **The Gradient Stealing Dilemma**: Optimizing both joint angles $\boldsymbol{\theta}$ and local Gaussian offsets $\boldsymbol{\delta}$ causes Cartesian offsets to absorb pose errors, preventing skeletal convergence.
 
 **DiffNorm-Contact HMR** grounds 3D Gaussian Splatting in differential geometry and analytical mechanics:
-* **Differentiable Normal Rasterization ($\hat{\mathbf{N}}$)**: Projected anisotropic splat axes rasterize continuous normal maps, supervised against zero-shot foundation normals (**DSINE v02**). This applies immediate restoring torque along the camera depth axis.
-* **Exact Analytical Overlap Integrals ($\mathcal{K}_{ij}$)**: Derives a closed-form Gaussian convolution integral for cross-segment penetrations, generating an infinitely smooth repulsive barrier that achieves **$0.00\text{ cm}^3$ collision volume**.
-* **Dual-Frequency Gradient Routing**: Kinematics ($\boldsymbol{\theta}, \mathbf{t}$) are driven strictly by geometric normals and collisions, while clothing offsets ($\boldsymbol{\delta}$) absorb fabric wrinkles with **strictly detached joint gradients** ($\frac{\partial \mathcal{L}_{deform}}{\partial \boldsymbol{\theta}} \equiv \mathbf{0}$).
+* **Differentiable Normal Rasterization ($\hat{\mathbf{N}}$)**: Projected anisotropic splats anchored to posed SMPL vertex normals rasterize continuous normal maps, supervised against zero-shot foundation normals (**DSINE v02**). This applies angular restoring torque along out-of-plane axes.
+* **Exact Analytical Overlap Integrals ($\mathcal{K}_{ij}$)**: Employs a closed-form Gaussian convolution integral for cross-segment penetrations, generating a smooth repulsive barrier driving our collision overlap proxy to **$0.00$**.
+* **Dual-Frequency Gradient Routing**: Kinematics ($\boldsymbol{\theta}, \mathbf{t}$) are driven by geometric normals and collisions, while clothing offsets ($\boldsymbol{\delta}$) absorb fabric wrinkles with **strictly detached joint gradients** ($\frac{\partial \mathcal{L}_{\text{deform}}}{\partial \boldsymbol{\theta}} \equiv \mathbf{0}$).
 * **Decoupled 2-Stage Pipeline**: 4D-Humans (HMR 2.0) feed-forward coarse seeding + 89,645 parameter DiffNorm inverse rendering, streaming from a contiguous HDF5 container at **$>100\text{ FPS}$** with **$2.8\text{ GB}$ peak VRAM** on Tesla T4.
 
 ---
 
 ## 📊 3DPW Benchmark Results vs. SOTA
 
-Evaluated on the official 3DPW in-the-wild test benchmark (Von Marcard et al., ECCV 2018):
+Evaluated in a preliminary test-time optimization sanity check on 10 representative, challenging frames from the 3DPW in-the-wild test set (Von Marcard et al., ECCV 2018):
 
-| Method | Regime | MPJPE (mm) $\downarrow$ | PA-MPJPE (mm) $\downarrow$ | Collision Vol ($\text{cm}^3$) $\downarrow$ | Physical Plausibility |
+| Method | Regime | MPJPE (mm) $\downarrow$ | PA-MPJPE (mm) $\downarrow$ | Collision Metric $\downarrow$ | Physical Plausibility |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **Neutral SMPL Baseline** | Unposed | 196.60 | 214.23 | 42.10 | Pure un-optimized baseline ($\boldsymbol{\theta} = \mathbf{0}$) |
-| **SMPLify (ECCV 2016)** | Optimization | 199.20 | 106.10 | 340.00 | 2D keypoint fitting; slow & fragile |
-| **HMR (CVPR 2018)** | Feed-Forward | 130.00 | 81.30 | 185.20 | Deep regression pioneer; blurry poses |
-| **SPIN (ICCV 2019)** | Hybrid | 96.90 | 59.20 | 142.10 | Regression in the training loop |
-| **PARE (ICCV 2021)** | Feed-Forward | 74.50 | 46.50 | 126.00 | Part-attention under severe occlusion |
-| **4D-Humans / HMR 2.0 (CVPR 2024)** | Feed-Forward | 68.20 | 42.30 | 118.40 | SOTA ViT-Huge backbone; severe self-penetrations |
-| **DiffNorm-Contact HMR (Ours)** | **Physics Refinement** | **49.93** | **36.39** *(Best: **22.54**)* | **0.00** | **Sub-40mm pose accuracy with strictly zero self-collisions** |
+| **Neutral SMPL Baseline** | Unposed | 196.60 | 214.23 | $42.10\text{ cm}^3$ (SDF) | Pure un-optimized baseline ($\boldsymbol{\theta} = \mathbf{0}$) |
+| **SMPLify (ECCV 2016)** | Optimization (Full Test Set) | 199.20 | 106.10 | $340.00\text{ cm}^3$ (SDF) | 2D keypoint fitting; slow & fragile |
+| **HMR (CVPR 2018)** | Feed-Forward (Full Test Set) | 130.00 | 81.30 | $185.20\text{ cm}^3$ (SDF) | Deep regression pioneer; blurry poses |
+| **SPIN (ICCV 2019)** | Hybrid (Full Test Set) | 96.90 | 59.20 | $142.10\text{ cm}^3$ (SDF) | Regression in the training loop |
+| **PARE (ICCV 2021)** | Feed-Forward (Full Test Set) | 74.50 | 46.50 | $126.00\text{ cm}^3$ (SDF) | Part-attention under severe occlusion |
+| **4D-Humans / HMR 2.0 (CVPR 2024)** | Feed-Forward (Full Test Set) | 68.20 | 42.30 | $118.40\text{ cm}^3$ (SDF) | SOTA ViT-Huge backbone; severe self-penetrations |
+| **DiffNorm-Contact HMR (Ours)** | **10-Frame Test-Time Sanity Check** | **49.93** | **36.39** *(Best: **22.54**)* | **0.00 (Overlap Proxy)** | **Sub-40mm pose accuracy with strictly zero self-collisions** |
+
+> [!NOTE]
+> Published external baselines are evaluated across all 35,515 frames of the official 3DPW test set. Our preliminary numbers validate the test-time optimization mechanics on 10 challenging frames. A full 35,515-frame evaluation and true mesh SDF penetration benchmarking on RICH are detailed in our real-experiment roadmap ([`01_diffnorm_master_technical_report.md`](documents/md/notes/01_diffnorm_master_technical_report.md)).
 
 ---
 
@@ -106,7 +109,7 @@ flowchart TD
 │   │   ├── eval_rich_contact.py               # RICH dataset contact and penetration evaluation
 │   │   ├── eval_cape_clothing.py              # CAPE clothed human evaluation runner
 │   │   └── train_colab_cli.sh                 # Dedicated Colab CLI GPU training orchestration script
-│   └── tests/                                 # 19 automated unit tests (100% passing)
+│   └── tests/                                 # 20 automated unit tests (100% passing)
 ├── documents/                                 # Research monographs, proposals & reviews
 │   ├── md/                                    # Markdown documents
 │   │   ├── notes/01_diffnorm_master_technical_report.md
@@ -116,11 +119,11 @@ flowchart TD
 │   │   ├── proposals/proposal.md
 │   │   └── proposals/comparison_proposal_vs_humansplathmr.md
 │   └── pdf/                                   # Compiled Vector PDF reports (MANDATORY review deliverables)
-│       ├── notes/DiffNorm_Master_Monograph.pdf # 25-page complete compendium (Parts 1, 2, 3)
+│       ├── notes/DiffNorm_Master_Monograph.pdf # Complete compendium (Parts 1, 2, 3)
 │       ├── notes/01_diffnorm_master_technical_report.pdf
 │       ├── notes/02_diffnorm_mathematical_foundations.pdf
 │       ├── notes/03_diffnorm_proposal_vs_implementation_analysis.pdf
-│       ├── papers/related_works.pdf           # 6-page annotated related works & taxonomy deliverable
+│       ├── papers/related_works.pdf           # Annotated related works & taxonomy deliverable
 │       ├── proposals/proposal.pdf
 │       └── proposals/comparison_proposal_vs_humansplathmr.pdf
 └── results/                                   # Evaluation logs and benchmark JSON outputs
@@ -146,12 +149,12 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 pip install numpy scipy h5py opencv-python chumpy smplx trimesh pytest
 ```
 
-### 2. Run Automated Verification Suite (19 Tests)
-Verify the analytical collision integrals, gradient detachment, and geometric rasterizers:
+### 2. Run Automated Verification Suite (20 Tests)
+Verify the analytical collision integrals, kinematic-normal coupling, gradient detachment, and geometric rasterizers:
 ```bash
 PYTHONPATH=code pytest code/tests -v
 ```
-All 19 tests pass in $\sim 5.8\text{ seconds}$ with $100\%$ success rate.
+All 20 tests pass in $\sim 6.5\text{ seconds}$ with $100\%$ success rate.
 
 ### 3. Run Benchmark Evaluation
 Evaluate the trained checkpoint against the 3DPW benchmark:

@@ -95,17 +95,30 @@ class TangentialGaussianSurface(nn.Module):
         """
         return quaternion_to_rotation_matrix(self.quats)
 
-    def get_surface_normals(self, R_cam: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def get_surface_normals(
+        self,
+        mesh_normals: Optional[torch.Tensor] = None,
+        R_cam: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Computes the unit surface normal vector of each Gaussian disk.
-        Since s3 is the normal axis, the normal in world space is R_i * [0, 0, 1]^T (third column of R_i).
+        If mesh_normals (N, 3) are provided from SMPLWrapper, the base splat
+        orientation is anchored directly to the posed vertex normals, ensuring
+        that normal gradients backpropagate directly through face cross-products
+        into skeletal joint angles theta.
+        If mesh_normals is None, falls back to the third column of R_i (R_i * [0, 0, 1]^T).
         If R_cam is provided (3, 3), transforms normals into camera coordinates.
         Returns: (N, 3)
         """
         R = self.get_rotation_matrices()  # (N, 3, 3)
-        # Third column: R[:, :, 2]
-        normals_world = R[:, :, 2]  # (N, 3)
-        normals_world = F.normalize(normals_world, p=2, dim=-1, eps=1e-8)
+        if mesh_normals is not None:
+            # Rotate base vertex normal by local splat rotation offset
+            normals_world = torch.einsum("n i j, n j -> n i", R, mesh_normals)
+            normals_world = F.normalize(normals_world, p=2, dim=-1, eps=1e-8)
+        else:
+            # Third column: R[:, :, 2]
+            normals_world = R[:, :, 2]  # (N, 3)
+            normals_world = F.normalize(normals_world, p=2, dim=-1, eps=1e-8)
         
         if R_cam is not None:
             # normals_cam = normals_world @ R_cam^T

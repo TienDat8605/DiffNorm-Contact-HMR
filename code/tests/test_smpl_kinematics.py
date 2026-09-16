@@ -44,3 +44,22 @@ def test_smpl_forward_shape():
     assert theta.grad is not None and not torch.all(theta.grad == 0)
     assert beta.grad is not None and not torch.all(beta.grad == 0)
     assert trans.grad is not None and not torch.all(trans.grad == 0)
+
+
+def test_normal_gradient_flow_into_theta():
+    """Verifies that surface normal supervision backpropagates directly into skeletal joint rotations."""
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    smpl = SMPLWrapper(device=device).to(device)
+
+    theta = torch.zeros(1, 24, 3, device=device, requires_grad=True)
+    out = smpl(theta=theta)
+    mesh_normals = out["normals"][0]  # (6890, 3)
+
+    # Simulated target normal pointing towards camera [0, 0, 1]
+    target_normals = torch.tensor([0.0, 0.0, 1.0], device=device).unsqueeze(0).repeat(6890, 1)
+    loss_normal = 1.0 - torch.mean(torch.sum(mesh_normals * target_normals, dim=-1))
+
+    loss_normal.backward()
+    assert theta.grad is not None
+    # Must produce non-zero rotational gradients on skeletal joints
+    assert torch.norm(theta.grad) > 1e-4
