@@ -169,7 +169,7 @@ We sort all Gaussians along the camera ray (from front to back by depth $\mu_z$)
 
 $$\hat{\mathbf{N}}(u,v) = \frac{\sum_{i=1}^{N} T_i \alpha_i(u,v) \mathbf{n}_i}{\sum_{i=1}^{N} T_i \alpha_i(u,v) + \epsilon}$$
 
-Where $T_i = \prod_{j=1}^{i-1} (1 - \alpha_j(u,v))$ is the transmittance (how much light penetrates through all前面的 surfaces).
+Where $T_i = \prod_{j=1}^{i-1} (1 - \alpha_j(u,v))$ is the transmittance (how much light penetrates through all preceding surfaces).
 
 ### Why do we calculate this?
 Notice that there are **no discrete if-statements or polygon boundaries**. Every single operation (fractions, matrix multiplications, exponentials) is $100\%$ continuously differentiable! We can backpropagate gradients from a pixel $(u,v)$ all the way back to the 3D joint rotations $\boldsymbol{\theta}$!
