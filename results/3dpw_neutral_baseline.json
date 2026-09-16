@@ -1,0 +1,7 @@
+{
+  "mode": "neutral_baseline",
+  "evaluated_frames": 100,
+  "MPJPE_mm": 196.5970950317383,
+  "PA_MPJPE_mm": 214.2264370727539,
+  "PVE_mm": 632.5278167724609
+}

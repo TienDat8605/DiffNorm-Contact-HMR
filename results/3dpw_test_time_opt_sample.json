@@ -1,0 +1,8 @@
+{
+  "mode": "test_time_opt",
+  "opt_iterations": 10,
+  "evaluated_frames": 5,
+  "MPJPE_mm": 245.09630126953124,
+  "PA_MPJPE_mm": 207.89390258789064,
+  "PVE_mm": 802.398388671875
+}

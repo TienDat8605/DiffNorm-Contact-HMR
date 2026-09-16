@@ -1,0 +1,83 @@
+# =====================================================================
+# DiffNorm-Contact HMR: Git Ignore Configuration
+# =====================================================================
+
+# Datasets, Cache, & Large Binary Files
+data/
+**/data/
+cache/
+**/cache/
+*.h5
+*.hdf5
+*.zip
+*.tar
+*.tar.gz
+*.aria2
+*.bin
+
+# Python Environments, Bytecode & Libraries
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# IDE, OS & Editor Artifacts
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Training Logs & Execution Traces
+*.log
+colab_training.log
+
+# Proprietary SMPL Weights (Downloaded separately per license)
+models/smpl/*.pkl
+models/smpl/*.npz
+
+# Duplicate Checkpoint Backups
+*_backup.pt
+*.pt.bak

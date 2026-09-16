@@ -1,0 +1,10 @@
+{
+  "mode": "test_time_opt_dsine_hmr2",
+  "opt_iterations": 10,
+  "evaluated_frames": 10,
+  "4DHumans_Init_MPJPE_mm": 31.259685134887697,
+  "DiffNorm_Refined_MPJPE_mm": 49.93036231994629,
+  "MPJPE_mm": 49.93036231994629,
+  "PA_MPJPE_mm": 36.39168586730957,
+  "PVE_mm": 276.8238021850586
+}
