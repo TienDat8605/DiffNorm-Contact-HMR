@@ -144,6 +144,7 @@ def evaluate_test_time_opt(
     print(f"[3DPW Test-Time Opt] Running {opt_iterations} opt iterations per frame across {num_eval} test frames...")
 
     init_total_mpjpe = 0.0
+    init_total_pa_mpjpe = 0.0
     ref_total_mpjpe = 0.0
     ref_total_pa_mpjpe = 0.0
     ref_total_pve = 0.0
@@ -168,31 +169,32 @@ def evaluate_test_time_opt(
 
         # 1. Real DSINE surface normals
         H, W = img.shape[0], img.shape[1]
+        img_chw = img.permute(2, 0, 1).unsqueeze(0)  # (1, 3, H, W)
         if dsine is not None:
-            img_chw = img.permute(2, 0, 1).unsqueeze(0)  # (1, 3, H, W)
             norm_img = normalize(img_chw[0]).unsqueeze(0)
             target_normals = run_dsine_batch(dsine, norm_img, device=device)[0]  # (H, W, 3)
         else:
             target_normals = torch.zeros(H, W, 3, device=device)
             target_normals[..., 2] = 1.0
 
-        # 2. 4D-Humans coarse pose initialization (simulates ~40-60mm HMR 2.0 output)
-        coarse_noise = gt_theta + torch.randn_like(gt_theta) * 0.04
-        coarse_out = hmr2(img.permute(2, 0, 1).unsqueeze(0), gt_theta=coarse_noise.unsqueeze(0))
+        # 2. 4D-Humans coarse pose initialization (Zero ground-truth guidance)
+        coarse_out = hmr2(img_chw, intrinsics=K.unsqueeze(0) if K is not None else None)
         init_theta = coarse_out["theta"][0]
-        init_trans = gt_trans + torch.randn_like(gt_trans) * 0.02
+        init_trans = coarse_out["trans"][0]
 
         # 3. Subject-focused silhouette gating via coarse mesh rasterization
         with torch.no_grad():
             init_out = smpl(theta=init_theta.unsqueeze(0), trans=init_trans.unsqueeze(0))
-            init_joints = smpl(theta=init_theta.unsqueeze(0))["joints"][0]
+            init_joints = init_out["joints"][0]
             init_mpjpe = compute_mpjpe(init_joints, gt_joints)
+            init_pa_mpjpe = compute_pa_mpjpe(init_joints, gt_joints)
             init_total_mpjpe += init_mpjpe
+            init_total_pa_mpjpe += init_pa_mpjpe
 
             coarse_v = init_out["vertices"][0]
             cen = gaussians.get_centers(coarse_v)
             cov = gaussians.get_spatial_covariances()
-            norm = gaussians.get_surface_normals()
+            norm = gaussians.get_surface_normals(mesh_normals=init_out["normals"][0])
             op = gaussians.get_opacities()
             col = gaussians.colors
             ren = rasterizer(cen, cov, norm, col, op, K=K)
@@ -228,7 +230,7 @@ def evaluate_test_time_opt(
         ref_total_pve += pve
         count += 1
 
-        print(f"  [Frame {i+1:04d}/{num_eval:04d}] 4D-Humans Init: {init_mpjpe:.2f} mm -> Refined MPJPE: {mpjpe:.2f} mm | PA-MPJPE: {pa_mpjpe:.2f} mm | PVE: {pve:.2f} mm")
+        print(f"  [Frame {i+1:04d}/{num_eval:04d}] Init PA-MPJPE: {init_pa_mpjpe:.2f} mm -> Refined PA-MPJPE: {pa_mpjpe:.2f} mm | Refined MPJPE: {mpjpe:.2f} mm | PVE: {pve:.2f} mm")
 
         if device.type == "cuda":
             torch.cuda.empty_cache()
@@ -238,7 +240,9 @@ def evaluate_test_time_opt(
         "opt_iterations": opt_iterations,
         "evaluated_frames": count,
         "4DHumans_Init_MPJPE_mm": init_total_mpjpe / max(count, 1),
+        "4DHumans_Init_PA_MPJPE_mm": init_total_pa_mpjpe / max(count, 1),
         "DiffNorm_Refined_MPJPE_mm": ref_total_mpjpe / max(count, 1),
+        "DiffNorm_Refined_PA_MPJPE_mm": ref_total_pa_mpjpe / max(count, 1),
         "MPJPE_mm": ref_total_mpjpe / max(count, 1),
         "PA_MPJPE_mm": ref_total_pa_mpjpe / max(count, 1),
         "PVE_mm": ref_total_pve / max(count, 1),
