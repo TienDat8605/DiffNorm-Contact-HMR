@@ -321,6 +321,7 @@ import subprocess, sys
 cmd = [
     sys.executable,
     "/content/code/scripts/train_colab.py",
+    "--dataset", "cache",
     "--epochs", "${EPOCHS}",
     "--batch_size", "${BATCH_SIZE}",
     "--max_samples", "${MAX_SAMPLES}",
