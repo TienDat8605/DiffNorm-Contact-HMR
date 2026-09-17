@@ -116,13 +116,16 @@ Saved raw PVE means are A=3925.72, B=3945.96, C=3786.59, D=3776.26, E=3779.48, F
 The three LEGACY IDs are assigned retrospectively for tracking, not recovered original run identifiers. Original files remain unchanged. Raw six-way elapsed time is 148.584 s, but the runner starts timing after neural pre-extraction; it is not end-to-end throughput and does not establish equal runtime per condition.
 
 Reproduction command:
-**python code/scripts/audit_pilot_artifact.py --out results/DOC-AUDIT-20260917/result.json**
+
+```bash
+python code/scripts/audit_pilot_artifact.py --out results/DOC-AUDIT-20260917/result.json
+```
 
 The [audit JSON](../../../results/DOC-AUDIT-20260917/result.json) records source-artifact SHA-256 values, reconstructed means/deltas, sequence counts, missing historical provenance and hashes of the **current** Python sources. Current hashes are not retroactive run provenance. [Verification transcript](../../../results/DOC-AUDIT-20260917/verification.txt) records this consolidation's checks.
 
 ### 4.3 Tests and limits of the audit
 
-CPU command: **CUDA_VISIBLE_DEVICES='' PYTHONPATH=code pytest code/tests/ -q**.
+CPU command: `CUDA_VISIBLE_DEVICES='' PYTHONPATH=code pytest code/tests/ -q`.
 Observed: **33 passed, 2 skipped, 12 warnings in 4.40 s** on the first check of this turn. DSINE-dependent tests skip in this environment. The final transcript may record a different duration.
 
 Tests cover limited invariants and integration, not authentic HMR2 inference, official SMPL parity, real camera alignment, accurate occlusion or improvement on held-out images. In particular, controller tests check shapes/bounds and constructed collinearity, not agreement with a rendered-residual Schur complement. No GPU experiment, memory benchmark, formal confidence interval or statistical significance claim was generated here.
