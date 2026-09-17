@@ -1,0 +1,95 @@
+{
+  "num_frames": 2,
+  "opt_iterations": 5,
+  "device": "cuda",
+  "total_elapsed_sec": 5.589496850967407,
+  "condition_a_frozen": {
+    "mean_mpjpe_mm": 209.7491226196289,
+    "mean_pa_mpjpe_mm": 228.99151611328125,
+    "mean_pve_mm": 2749.067138671875
+  },
+  "condition_b_mesh": {
+    "mean_mpjpe_mm": 223.36444854736328,
+    "mean_pa_mpjpe_mm": 219.72645568847656,
+    "mean_pve_mm": 2801.2991943359375,
+    "worsening_rate_pct": 0.0
+  },
+  "condition_c_constrained_3dgs": {
+    "mean_mpjpe_mm": 222.1710968017578,
+    "mean_pa_mpjpe_mm": 223.18429565429688,
+    "mean_pve_mm": 2720.274658203125,
+    "worsening_rate_pct": 0.0
+  },
+  "condition_d_unconstrained_3dgs": {
+    "mean_mpjpe_mm": 216.96637725830078,
+    "mean_pa_mpjpe_mm": 224.09991455078125,
+    "mean_pve_mm": 2710.6068115234375,
+    "worsening_rate_pct": 0.0
+  },
+  "condition_e_nuisance_controlled_3dgs": {
+    "mean_mpjpe_mm": 216.6379165649414,
+    "mean_pa_mpjpe_mm": 223.2705841064453,
+    "mean_pve_mm": 2712.5186767578125,
+    "worsening_rate_pct": 0.0
+  },
+  "per_frame_records": [
+    {
+      "seq_name": "downtown_arguing_00",
+      "frame_idx": 0,
+      "cond_a": {
+        "mpjpe": 205.19566345214844,
+        "pa_mpjpe": 227.96890258789062,
+        "pve": 2681.494140625
+      },
+      "cond_b": {
+        "mpjpe": 228.43997192382812,
+        "pa_mpjpe": 219.29483032226562,
+        "pve": 2744.511474609375
+      },
+      "cond_c": {
+        "mpjpe": 212.63906860351562,
+        "pa_mpjpe": 221.80101013183594,
+        "pve": 2646.4326171875
+      },
+      "cond_d": {
+        "mpjpe": 211.39285278320312,
+        "pa_mpjpe": 223.20294189453125,
+        "pve": 2646.42578125
+      },
+      "cond_e": {
+        "mpjpe": 210.7279815673828,
+        "pa_mpjpe": 222.2427520751953,
+        "pve": 2647.549072265625
+      }
+    },
+    {
+      "seq_name": "downtown_arguing_00",
+      "frame_idx": 50,
+      "cond_a": {
+        "mpjpe": 214.30258178710938,
+        "pa_mpjpe": 230.01412963867188,
+        "pve": 2816.64013671875
+      },
+      "cond_b": {
+        "mpjpe": 218.28892517089844,
+        "pa_mpjpe": 220.1580810546875,
+        "pve": 2858.0869140625
+      },
+      "cond_c": {
+        "mpjpe": 231.703125,
+        "pa_mpjpe": 224.5675811767578,
+        "pve": 2794.11669921875
+      },
+      "cond_d": {
+        "mpjpe": 222.53990173339844,
+        "pa_mpjpe": 224.99688720703125,
+        "pve": 2774.787841796875
+      },
+      "cond_e": {
+        "mpjpe": 222.5478515625,
+        "pa_mpjpe": 224.2984161376953,
+        "pve": 2777.48828125
+      }
+    }
+  ]
+}

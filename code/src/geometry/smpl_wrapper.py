@@ -181,11 +181,14 @@ class SMPLWrapper(nn.Module):
         super().__init__()
         self.device = device
         self.parents = SMPL_PARENTS
+        self.is_synthetic = True
         
         if model_path and os.path.exists(model_path):
             self._load_official_smpl(model_path)
+            self.is_synthetic = False
         else:
             self._init_synthetic_model()
+            self.is_synthetic = True
             
     def _init_synthetic_model(self):
         v_template, joints, weights, faces, shapedirs = create_synthetic_canonical_humanoid(
@@ -196,6 +199,7 @@ class SMPLWrapper(nn.Module):
         self.register_buffer("weights", weights)              # (6890, 24)
         self.register_buffer("faces", faces)                  # (M, 3)
         self.register_buffer("shapedirs", shapedirs)          # (6890, 3, 10)
+        self.J_regressor = None
         
     def _load_official_smpl(self, model_path: str):
         with open(model_path, "rb") as f:
@@ -215,6 +219,7 @@ class SMPLWrapper(nn.Module):
         self.register_buffer("weights", weights)
         self.register_buffer("faces", faces)
         self.register_buffer("shapedirs", shapedirs)
+        self.register_buffer("J_regressor", J_regressor)
 
     def forward_kinematics(
         self,
@@ -257,12 +262,16 @@ class SMPLWrapper(nn.Module):
         global_transforms = torch.stack(transforms, dim=1)  # (B, 24, 4, 4)
         
         # Subtract rest joint positions to obtain affine matrix A_k = G_k * G_rest_k^{-1}
+        # Standard SMPL Linear Blend Skinning (LBS):
+        # G_k = [R_k^g, t_k^g; 0, 1], G_rest_k = [I, j_k; 0, 1] -> G_rest_k^{-1} = [I, -j_k; 0, 1]
+        # A_k = [R_k^g, t_k^g - R_k^g * j_k; 0, 1]
         rel_transforms = []
         for i in range(24):
             G = global_transforms[:, i]
             j = joints[:, i]
-            j_homo = torch.cat([j, torch.ones(B, 1, device=device, dtype=j.dtype)], dim=1).unsqueeze(-1)
-            offset = torch.matmul(G, j_homo)[:, :3, 0] - j
+            R_g = G[:, :3, :3]
+            t_g = G[:, :3, 3]
+            offset = t_g - torch.matmul(R_g, j.unsqueeze(-1)).squeeze(-1)
             
             A = G.clone()
             A[:, :3, 3] = offset
@@ -297,7 +306,10 @@ class SMPLWrapper(nn.Module):
         else:
             v_shaped = self.v_template.unsqueeze(0).repeat(B, 1, 1)
 
-        joints = self.joints_template.unsqueeze(0).repeat(B, 1, 1)
+        if hasattr(self, "J_regressor") and self.J_regressor is not None:
+            joints = torch.matmul(self.J_regressor.unsqueeze(0), v_shaped)  # (B, 24, 3)
+        else:
+            joints = self.joints_template.unsqueeze(0).repeat(B, 1, 1)
 
         # Forward kinematics
         global_transforms, rel_transforms = self.forward_kinematics(rotations, joints)

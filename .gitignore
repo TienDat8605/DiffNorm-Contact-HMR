@@ -70,6 +70,11 @@ coverage.xml
 .DS_Store
 Thumbs.db
 
+# Environment Secrets & API Keys
+.env
+.env.*
+!.env.example
+
 # Training Logs & Execution Traces
 *.log
 colab_training.log

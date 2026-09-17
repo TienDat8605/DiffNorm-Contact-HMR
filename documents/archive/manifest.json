@@ -1,0 +1,280 @@
+{
+  "date": "2026-09-17",
+  "policy": "Historical bytes preserved. Archive contents are not current scientific evidence; links inside historical documents may refer to original paths.",
+  "moves": [
+    {
+      "from": "documents/md/plans/nuisance_aware_3dgs_hmr_research_plan_2026_09_17.md",
+      "to": "documents/archive/md/plans/nuisance_aware_3dgs_hmr_research_plan_2026_09_17.md"
+    },
+    {
+      "from": "documents/md/reviews/astra_gemini_research_framework_setup.md",
+      "to": "documents/archive/md/reviews/astra_gemini_research_framework_setup.md"
+    },
+    {
+      "from": "documents/md/reviews/nuisance_aware_3dgs_6way_benchmark_report_2026_09_17.md",
+      "to": "documents/archive/md/reviews/nuisance_aware_3dgs_6way_benchmark_report_2026_09_17.md"
+    },
+    {
+      "from": "documents/md/reviews/nuisance_aware_3dgs_pilot_findings_2026_09_17.md",
+      "to": "documents/archive/md/reviews/nuisance_aware_3dgs_pilot_findings_2026_09_17.md"
+    },
+    {
+      "from": "documents/md/reviews/diffnorm_code_audit_and_remediation_report_2026_09_17.md",
+      "to": "documents/archive/md/reviews/diffnorm_code_audit_and_remediation_report_2026_09_17.md"
+    },
+    {
+      "from": "documents/md/reviews/3dgs_hmr_novelty_directions_2026_09_17.md",
+      "to": "documents/archive/md/reviews/3dgs_hmr_novelty_directions_2026_09_17.md"
+    },
+    {
+      "from": "documents/md/reviews/3dgs_hmr_research_code_review_2026_09_17.md",
+      "to": "documents/archive/md/reviews/3dgs_hmr_research_code_review_2026_09_17.md"
+    },
+    {
+      "from": "documents/md/reviews/review_2026_09_17_probes.py",
+      "to": "code/scripts/review_2026_09_17_probes.py"
+    },
+    {
+      "from": "documents/md/reviews/diffnorm_mathematical_review.pdf",
+      "to": "documents/pdf/reviews/diffnorm_mathematical_review.pdf"
+    },
+    {
+      "from": "documents/md/proposals/comparison_proposal_vs_humansplathmr.md",
+      "to": "documents/archive/md/proposals/comparison_proposal_vs_humansplathmr.md"
+    },
+    {
+      "from": "documents/md/proposals/hmr_3dgs_critique_and_proposal.md",
+      "to": "documents/archive/md/proposals/hmr_3dgs_critique_and_proposal.md"
+    },
+    {
+      "from": "documents/md/proposals/proposal.md",
+      "to": "documents/archive/md/proposals/proposal.md"
+    },
+    {
+      "from": "documents/md/notes/03_diffnorm_proposal_vs_implementation_analysis.md",
+      "to": "documents/archive/md/notes/03_diffnorm_proposal_vs_implementation_analysis.md"
+    },
+    {
+      "from": "documents/md/notes/02_diffnorm_mathematical_foundations.md",
+      "to": "documents/archive/md/notes/02_diffnorm_mathematical_foundations.md"
+    },
+    {
+      "from": "documents/md/notes/01_diffnorm_master_technical_report.md",
+      "to": "documents/archive/md/notes/01_diffnorm_master_technical_report.md"
+    },
+    {
+      "from": "documents/pdf/papers/related_works.pdf",
+      "to": "documents/archive/pdf/papers/related_works.pdf"
+    },
+    {
+      "from": "documents/pdf/3dgs_hmr_novelty_directions_2026_09_17.pdf",
+      "to": "documents/archive/pdf/3dgs_hmr_novelty_directions_2026_09_17.pdf"
+    },
+    {
+      "from": "documents/pdf/3dgs_hmr_research_code_review_2026_09_17.pdf",
+      "to": "documents/archive/pdf/3dgs_hmr_research_code_review_2026_09_17.pdf"
+    },
+    {
+      "from": "documents/pdf/astra_gemini_research_framework_setup.pdf",
+      "to": "documents/archive/pdf/astra_gemini_research_framework_setup.pdf"
+    },
+    {
+      "from": "documents/pdf/nuisance_aware_3dgs_6way_benchmark_report_2026_09_17.pdf",
+      "to": "documents/archive/pdf/nuisance_aware_3dgs_6way_benchmark_report_2026_09_17.pdf"
+    },
+    {
+      "from": "documents/pdf/nuisance_aware_3dgs_pilot_findings_2026_09_17.pdf",
+      "to": "documents/archive/pdf/nuisance_aware_3dgs_pilot_findings_2026_09_17.pdf"
+    },
+    {
+      "from": "documents/pdf/nuisance_aware_3dgs_hmr_research_plan_2026_09_17.pdf",
+      "to": "documents/archive/pdf/nuisance_aware_3dgs_hmr_research_plan_2026_09_17.pdf"
+    },
+    {
+      "from": "documents/pdf/diffnorm_code_audit_and_remediation_report_2026_09_17.pdf",
+      "to": "documents/archive/pdf/diffnorm_code_audit_and_remediation_report_2026_09_17.pdf"
+    },
+    {
+      "from": "documents/pdf/proposals/deep_research_hmr_3dgs_proposals.pdf",
+      "to": "documents/archive/pdf/proposals/deep_research_hmr_3dgs_proposals.pdf"
+    },
+    {
+      "from": "documents/md/notes/archive/diffnorm_mathematical_walkthrough_guide.md",
+      "to": "documents/archive/md/notes/archive/diffnorm_mathematical_walkthrough_guide.md"
+    },
+    {
+      "from": "documents/md/notes/archive/diffnorm_system_deep_dive_and_results_explanation.md",
+      "to": "documents/archive/md/notes/archive/diffnorm_system_deep_dive_and_results_explanation.md"
+    },
+    {
+      "from": "documents/md/notes/archive/colab_training_and_dsine_benchmark_report.md",
+      "to": "documents/archive/md/notes/archive/colab_training_and_dsine_benchmark_report.md"
+    },
+    {
+      "from": "documents/md/notes/archive/AGENTS.md",
+      "to": "documents/archive/md/notes/archive/AGENTS.md"
+    },
+    {
+      "from": "documents/md/notes/archive/walkthrough.md",
+      "to": "documents/archive/md/notes/archive/walkthrough.md"
+    },
+    {
+      "from": "documents/md/notes/archive/training_results_and_3dpw_evaluation_report.md",
+      "to": "documents/archive/md/notes/archive/training_results_and_3dpw_evaluation_report.md"
+    },
+    {
+      "from": "documents/md/notes/archive/repository_organization_and_dataset_setup.md",
+      "to": "documents/archive/md/notes/archive/repository_organization_and_dataset_setup.md"
+    },
+    {
+      "from": "documents/md/notes/archive/evaluation_and_training_audit_postmortem.md",
+      "to": "documents/archive/md/notes/archive/evaluation_and_training_audit_postmortem.md"
+    },
+    {
+      "from": "documents/md/notes/archive/dsine_and_initial_pose_integration_guide.md",
+      "to": "documents/archive/md/notes/archive/dsine_and_initial_pose_integration_guide.md"
+    },
+    {
+      "from": "documents/md/notes/archive/dsine_and_4dhumans_implementation_walkthrough.md",
+      "to": "documents/archive/md/notes/archive/dsine_and_4dhumans_implementation_walkthrough.md"
+    },
+    {
+      "from": "documents/md/notes/archive/diffnorm_contact_hmr_implementation_plan.md",
+      "to": "documents/archive/md/notes/archive/diffnorm_contact_hmr_implementation_plan.md"
+    },
+    {
+      "from": "documents/md/notes/archive/colab_training_monitoring_report_1.md",
+      "to": "documents/archive/md/notes/archive/colab_training_monitoring_report_1.md"
+    },
+    {
+      "from": "documents/md/notes/archive/colab_t4_optimization_walkthrough.md",
+      "to": "documents/archive/md/notes/archive/colab_t4_optimization_walkthrough.md"
+    },
+    {
+      "from": "documents/md/notes/archive/colab_t4_caching_and_optimization_plan.md",
+      "to": "documents/archive/md/notes/archive/colab_t4_caching_and_optimization_plan.md"
+    },
+    {
+      "from": "documents/md/notes/archive/colab_cli_training_guide.md",
+      "to": "documents/archive/md/notes/archive/colab_cli_training_guide.md"
+    },
+    {
+      "from": "documents/pdf/proposals/proposal.pdf",
+      "to": "documents/archive/pdf/proposals/proposal.pdf"
+    },
+    {
+      "from": "documents/pdf/proposals/falsifiable_hmr_3dgs_proposal.pdf",
+      "to": "documents/archive/pdf/proposals/falsifiable_hmr_3dgs_proposal.pdf"
+    },
+    {
+      "from": "documents/md/papers/related_works.md",
+      "to": "documents/archive/md/papers/related_works.md"
+    },
+    {
+      "from": "documents/pdf/proposals/comparison_proposal_vs_humansplathmr.pdf",
+      "to": "documents/archive/pdf/proposals/comparison_proposal_vs_humansplathmr.pdf"
+    },
+    {
+      "from": "documents/pdf/proposals/hmr_3dgs_critique_and_proposal.pdf",
+      "to": "documents/archive/pdf/proposals/hmr_3dgs_critique_and_proposal.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/DiffNorm_Master_Monograph.pdf",
+      "to": "documents/archive/pdf/notes/DiffNorm_Master_Monograph.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/03_diffnorm_proposal_vs_implementation_analysis.pdf",
+      "to": "documents/archive/pdf/notes/03_diffnorm_proposal_vs_implementation_analysis.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/02_diffnorm_mathematical_foundations.pdf",
+      "to": "documents/archive/pdf/notes/02_diffnorm_mathematical_foundations.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/01_diffnorm_master_technical_report.pdf",
+      "to": "documents/archive/pdf/notes/01_diffnorm_master_technical_report.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/diffnorm_mathematical_walkthrough_guide.pdf",
+      "to": "documents/archive/pdf/notes/archive/diffnorm_mathematical_walkthrough_guide.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/diffnorm_system_deep_dive_and_results_explanation.pdf",
+      "to": "documents/archive/pdf/notes/archive/diffnorm_system_deep_dive_and_results_explanation.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/colab_training_and_dsine_benchmark_report.pdf",
+      "to": "documents/archive/pdf/notes/archive/colab_training_and_dsine_benchmark_report.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/walkthrough.pdf",
+      "to": "documents/archive/pdf/notes/archive/walkthrough.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/training_results_and_3dpw_evaluation_report.pdf",
+      "to": "documents/archive/pdf/notes/archive/training_results_and_3dpw_evaluation_report.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/repository_organization_and_dataset_setup.pdf",
+      "to": "documents/archive/pdf/notes/archive/repository_organization_and_dataset_setup.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/papers_analysis_report.pdf",
+      "to": "documents/archive/pdf/notes/archive/papers_analysis_report.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/evaluation_and_training_audit_postmortem.pdf",
+      "to": "documents/archive/pdf/notes/archive/evaluation_and_training_audit_postmortem.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/dsine_and_initial_pose_integration_guide.pdf",
+      "to": "documents/archive/pdf/notes/archive/dsine_and_initial_pose_integration_guide.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/dsine_and_4dhumans_implementation_walkthrough.pdf",
+      "to": "documents/archive/pdf/notes/archive/dsine_and_4dhumans_implementation_walkthrough.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/diffnorm_contact_hmr_implementation_plan.pdf",
+      "to": "documents/archive/pdf/notes/archive/diffnorm_contact_hmr_implementation_plan.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/colab_training_monitoring_report_1.pdf",
+      "to": "documents/archive/pdf/notes/archive/colab_training_monitoring_report_1.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/colab_t4_optimization_walkthrough.pdf",
+      "to": "documents/archive/pdf/notes/archive/colab_t4_optimization_walkthrough.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/colab_t4_caching_and_optimization_plan.pdf",
+      "to": "documents/archive/pdf/notes/archive/colab_t4_caching_and_optimization_plan.pdf"
+    },
+    {
+      "from": "documents/pdf/notes/archive/colab_cli_training_guide.pdf",
+      "to": "documents/archive/pdf/notes/archive/colab_cli_training_guide.pdf"
+    }
+  ],
+  "snapshots": [
+    {
+      "from": "README.md",
+      "to": "documents/archive/md/state_before_2026_09_17/README.md"
+    },
+    {
+      "from": "RESEARCH.md",
+      "to": "documents/archive/md/state_before_2026_09_17/RESEARCH.md"
+    },
+    {
+      "from": "notes/hypotheses.md",
+      "to": "documents/archive/md/state_before_2026_09_17/hypotheses.md"
+    },
+    {
+      "from": "notes/decisions.md",
+      "to": "documents/archive/md/state_before_2026_09_17/decisions.md"
+    },
+    {
+      "from": "notes/literature.md",
+      "to": "documents/archive/md/state_before_2026_09_17/literature.md"
+    }
+  ]
+}

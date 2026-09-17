@@ -125,13 +125,14 @@ def run_dsine_batch(
     with torch.no_grad():
         pred = model(img_padded, intrins=intrins)[-1]  # (B, 3, H_pad, W_pad)
         pred_cropped = pred[:, :, pad_lrtb[2]:pad_lrtb[2] + H, pad_lrtb[0]:pad_lrtb[0] + W]
+        del img_padded, intrins, pred
 
-    # Normalize to exact unit vectors
-    norm = torch.norm(pred_cropped, dim=1, keepdim=True).clamp_min(1e-6)
-    pred_unit = pred_cropped / norm
+        # Normalize to exact unit vectors
+        norm = torch.norm(pred_cropped, dim=1, keepdim=True).clamp_min(1e-6)
+        pred_unit = (pred_cropped / norm).permute(0, 2, 3, 1).contiguous()
+        del pred_cropped, norm
 
-    # Rearrange to (B, H, W, 3)
-    return pred_unit.permute(0, 2, 3, 1)
+    return pred_unit
 
 
 def precompute_dsine_normals_in_cache(

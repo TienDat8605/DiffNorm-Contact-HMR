@@ -184,7 +184,8 @@ def evaluate_test_time_opt(
 
         # 3. Subject-focused silhouette gating via coarse mesh rasterization
         with torch.no_grad():
-            init_out = smpl(theta=init_theta.unsqueeze(0), trans=init_trans.unsqueeze(0))
+            sample_betas = sample["betas"].unsqueeze(0).to(device) if "betas" in sample else None
+            init_out = smpl(theta=init_theta.unsqueeze(0), beta=sample_betas, trans=init_trans.unsqueeze(0))
             init_joints = init_out["joints"][0]
             init_mpjpe = compute_mpjpe(init_joints, gt_joints)
             init_pa_mpjpe = compute_pa_mpjpe(init_joints, gt_joints)
@@ -193,7 +194,7 @@ def evaluate_test_time_opt(
 
             coarse_v = init_out["vertices"][0]
             cen = gaussians.get_centers(coarse_v)
-            cov = gaussians.get_spatial_covariances()
+            cov = gaussians.get_spatial_covariances(mesh_normals=init_out["normals"][0])
             norm = gaussians.get_surface_normals(mesh_normals=init_out["normals"][0])
             op = gaussians.get_opacities()
             col = gaussians.colors
@@ -217,7 +218,8 @@ def evaluate_test_time_opt(
 
         with torch.no_grad():
             pred_theta = res["theta"].unsqueeze(0).to(device)
-            pred_out = smpl(theta=pred_theta)
+            pred_trans = res["trans"].unsqueeze(0).to(device) if "trans" in res else None
+            pred_out = smpl(theta=pred_theta, beta=sample_betas, trans=pred_trans)
             pred_joints = pred_out["joints"][0]
             pred_verts = pred_out["vertices"][0]
 

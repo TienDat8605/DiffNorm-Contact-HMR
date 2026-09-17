@@ -1,0 +1,514 @@
+{
+  "num_frames": 24,
+  "device": "cuda:0 (NVIDIA GeForce RTX 3050 Ti Laptop GPU)",
+  "conditions": {
+    "cond_a_frozen_init": {
+      "mean_pa_mpjpe_mm": 213.225,
+      "worsening_rate_pct": 0.0
+    },
+    "cond_b_mesh_normal": {
+      "mean_pa_mpjpe_mm": 211.7125,
+      "delta_pa_vs_init_mm": -1.5124999999999698,
+      "worsening_rate_pct": 41.66666666666667
+    },
+    "cond_c_constrained_3dgs": {
+      "mean_pa_mpjpe_mm": 222.21666666666667,
+      "delta_pa_vs_init_mm": 8.991666666666674,
+      "worsening_rate_pct": 62.5
+    },
+    "cond_d_unconstrained_3dgs": {
+      "mean_pa_mpjpe_mm": 227.86666666666667,
+      "delta_pa_vs_init_mm": 14.641666666666689,
+      "delta_pa_vs_constrained_mm": 5.6500000000000155,
+      "worsening_rate_pct": 79.16666666666666
+    },
+    "cond_e_nuisance_controlled_3dgs": {
+      "mean_pa_mpjpe_mm": 226.86249999999998,
+      "delta_pa_vs_init_mm": 13.637500000000008,
+      "delta_pa_vs_unconstrained_mm": -1.0041666666666818,
+      "worsening_rate_pct": 75.0
+    }
+  },
+  "per_frame_records": [
+    {
+      "frame_num": 1,
+      "seq_name": "downtown_arguing_00",
+      "frame_idx": 0,
+      "cond_a": {
+        "pa_mpjpe": 228.0
+      },
+      "cond_b": {
+        "pa_mpjpe": 217.1
+      },
+      "cond_c": {
+        "pa_mpjpe": 227.8
+      },
+      "cond_d": {
+        "pa_mpjpe": 230.2
+      },
+      "cond_e": {
+        "pa_mpjpe": 230.8
+      }
+    },
+    {
+      "frame_num": 2,
+      "seq_name": "downtown_arguing_00",
+      "frame_idx": 1423,
+      "cond_a": {
+        "pa_mpjpe": 108.9
+      },
+      "cond_b": {
+        "pa_mpjpe": 118.2
+      },
+      "cond_c": {
+        "pa_mpjpe": 127.3
+      },
+      "cond_d": {
+        "pa_mpjpe": 150.4
+      },
+      "cond_e": {
+        "pa_mpjpe": 149.2
+      }
+    },
+    {
+      "frame_num": 3,
+      "seq_name": "downtown_bar_00",
+      "frame_idx": 1137,
+      "cond_a": {
+        "pa_mpjpe": 191.3
+      },
+      "cond_b": {
+        "pa_mpjpe": 209.0
+      },
+      "cond_c": {
+        "pa_mpjpe": 201.2
+      },
+      "cond_d": {
+        "pa_mpjpe": 211.9
+      },
+      "cond_e": {
+        "pa_mpjpe": 220.1
+      }
+    },
+    {
+      "frame_num": 4,
+      "seq_name": "downtown_bus_00",
+      "frame_idx": 8,
+      "cond_a": {
+        "pa_mpjpe": 227.3
+      },
+      "cond_b": {
+        "pa_mpjpe": 199.7
+      },
+      "cond_c": {
+        "pa_mpjpe": 243.6
+      },
+      "cond_d": {
+        "pa_mpjpe": 245.1
+      },
+      "cond_e": {
+        "pa_mpjpe": 241.1
+      }
+    },
+    {
+      "frame_num": 5,
+      "seq_name": "downtown_bus_00",
+      "frame_idx": 2744,
+      "cond_a": {
+        "pa_mpjpe": 215.5
+      },
+      "cond_b": {
+        "pa_mpjpe": 229.0
+      },
+      "cond_c": {
+        "pa_mpjpe": 239.7
+      },
+      "cond_d": {
+        "pa_mpjpe": 250.0
+      },
+      "cond_e": {
+        "pa_mpjpe": 249.5
+      }
+    },
+    {
+      "frame_num": 6,
+      "seq_name": "downtown_cafe_00",
+      "frame_idx": 300,
+      "cond_a": {
+        "pa_mpjpe": 230.0
+      },
+      "cond_b": {
+        "pa_mpjpe": 196.9
+      },
+      "cond_c": {
+        "pa_mpjpe": 223.4
+      },
+      "cond_d": {
+        "pa_mpjpe": 223.0
+      },
+      "cond_e": {
+        "pa_mpjpe": 219.4
+      }
+    },
+    {
+      "frame_num": 7,
+      "seq_name": "downtown_cafe_00",
+      "frame_idx": 2023,
+      "cond_a": {
+        "pa_mpjpe": 215.7
+      },
+      "cond_b": {
+        "pa_mpjpe": 230.0
+      },
+      "cond_c": {
+        "pa_mpjpe": 220.1
+      },
+      "cond_d": {
+        "pa_mpjpe": 221.8
+      },
+      "cond_e": {
+        "pa_mpjpe": 220.0
+      }
+    },
+    {
+      "frame_num": 8,
+      "seq_name": "downtown_car_00",
+      "frame_idx": 1169,
+      "cond_a": {
+        "pa_mpjpe": 200.7
+      },
+      "cond_b": {
+        "pa_mpjpe": 208.1
+      },
+      "cond_c": {
+        "pa_mpjpe": 217.6
+      },
+      "cond_d": {
+        "pa_mpjpe": 211.7
+      },
+      "cond_e": {
+        "pa_mpjpe": 213.0
+      }
+    },
+    {
+      "frame_num": 9,
+      "seq_name": "downtown_crossStreets_00",
+      "frame_idx": 1073,
+      "cond_a": {
+        "pa_mpjpe": 219.0
+      },
+      "cond_b": {
+        "pa_mpjpe": 234.3
+      },
+      "cond_c": {
+        "pa_mpjpe": 218.6
+      },
+      "cond_d": {
+        "pa_mpjpe": 216.7
+      },
+      "cond_e": {
+        "pa_mpjpe": 214.3
+      }
+    },
+    {
+      "frame_num": 10,
+      "seq_name": "downtown_enterShop_00",
+      "frame_idx": 1443,
+      "cond_a": {
+        "pa_mpjpe": 246.4
+      },
+      "cond_b": {
+        "pa_mpjpe": 285.7
+      },
+      "cond_c": {
+        "pa_mpjpe": 280.9
+      },
+      "cond_d": {
+        "pa_mpjpe": 297.6
+      },
+      "cond_e": {
+        "pa_mpjpe": 296.8
+      }
+    },
+    {
+      "frame_num": 11,
+      "seq_name": "downtown_rampAndStairs_00",
+      "frame_idx": 727,
+      "cond_a": {
+        "pa_mpjpe": 253.3
+      },
+      "cond_b": {
+        "pa_mpjpe": 251.0
+      },
+      "cond_c": {
+        "pa_mpjpe": 252.2
+      },
+      "cond_d": {
+        "pa_mpjpe": 258.1
+      },
+      "cond_e": {
+        "pa_mpjpe": 256.9
+      }
+    },
+    {
+      "frame_num": 12,
+      "seq_name": "downtown_runForBus_00",
+      "frame_idx": 180,
+      "cond_a": {
+        "pa_mpjpe": 197.4
+      },
+      "cond_b": {
+        "pa_mpjpe": 175.9
+      },
+      "cond_c": {
+        "pa_mpjpe": 186.9
+      },
+      "cond_d": {
+        "pa_mpjpe": 193.3
+      },
+      "cond_e": {
+        "pa_mpjpe": 193.1
+      }
+    },
+    {
+      "frame_num": 13,
+      "seq_name": "downtown_runForBus_01",
+      "frame_idx": 296,
+      "cond_a": {
+        "pa_mpjpe": 255.8
+      },
+      "cond_b": {
+        "pa_mpjpe": 250.2
+      },
+      "cond_c": {
+        "pa_mpjpe": 253.3
+      },
+      "cond_d": {
+        "pa_mpjpe": 253.3
+      },
+      "cond_e": {
+        "pa_mpjpe": 252.8
+      }
+    },
+    {
+      "frame_num": 14,
+      "seq_name": "downtown_sitOnStairs_00",
+      "frame_idx": 278,
+      "cond_a": {
+        "pa_mpjpe": 190.4
+      },
+      "cond_b": {
+        "pa_mpjpe": 166.6
+      },
+      "cond_c": {
+        "pa_mpjpe": 180.7
+      },
+      "cond_d": {
+        "pa_mpjpe": 190.7
+      },
+      "cond_e": {
+        "pa_mpjpe": 187.6
+      }
+    },
+    {
+      "frame_num": 15,
+      "seq_name": "downtown_sitOnStairs_00",
+      "frame_idx": 1743,
+      "cond_a": {
+        "pa_mpjpe": 266.4
+      },
+      "cond_b": {
+        "pa_mpjpe": 251.7
+      },
+      "cond_c": {
+        "pa_mpjpe": 264.1
+      },
+      "cond_d": {
+        "pa_mpjpe": 260.3
+      },
+      "cond_e": {
+        "pa_mpjpe": 260.5
+      }
+    },
+    {
+      "frame_num": 16,
+      "seq_name": "downtown_stairs_00",
+      "frame_idx": 999,
+      "cond_a": {
+        "pa_mpjpe": 151.0
+      },
+      "cond_b": {
+        "pa_mpjpe": 197.3
+      },
+      "cond_c": {
+        "pa_mpjpe": 164.3
+      },
+      "cond_d": {
+        "pa_mpjpe": 162.0
+      },
+      "cond_e": {
+        "pa_mpjpe": 158.9
+      }
+    },
+    {
+      "frame_num": 17,
+      "seq_name": "downtown_upstairs_00",
+      "frame_idx": 1457,
+      "cond_a": {
+        "pa_mpjpe": 212.7
+      },
+      "cond_b": {
+        "pa_mpjpe": 220.2
+      },
+      "cond_c": {
+        "pa_mpjpe": 211.8
+      },
+      "cond_d": {
+        "pa_mpjpe": 217.1
+      },
+      "cond_e": {
+        "pa_mpjpe": 216.1
+      }
+    },
+    {
+      "frame_num": 18,
+      "seq_name": "downtown_walkUphill_00",
+      "frame_idx": 248,
+      "cond_a": {
+        "pa_mpjpe": 216.9
+      },
+      "cond_b": {
+        "pa_mpjpe": 197.9
+      },
+      "cond_c": {
+        "pa_mpjpe": 237.6
+      },
+      "cond_d": {
+        "pa_mpjpe": 244.3
+      },
+      "cond_e": {
+        "pa_mpjpe": 237.4
+      }
+    },
+    {
+      "frame_num": 19,
+      "seq_name": "downtown_walking_00",
+      "frame_idx": 1157,
+      "cond_a": {
+        "pa_mpjpe": 189.6
+      },
+      "cond_b": {
+        "pa_mpjpe": 170.9
+      },
+      "cond_c": {
+        "pa_mpjpe": 200.4
+      },
+      "cond_d": {
+        "pa_mpjpe": 201.0
+      },
+      "cond_e": {
+        "pa_mpjpe": 201.5
+      }
+    },
+    {
+      "frame_num": 20,
+      "seq_name": "downtown_walking_00",
+      "frame_idx": 2752,
+      "cond_a": {
+        "pa_mpjpe": 227.1
+      },
+      "cond_b": {
+        "pa_mpjpe": 239.0
+      },
+      "cond_c": {
+        "pa_mpjpe": 231.1
+      },
+      "cond_d": {
+        "pa_mpjpe": 231.2
+      },
+      "cond_e": {
+        "pa_mpjpe": 229.1
+      }
+    },
+    {
+      "frame_num": 21,
+      "seq_name": "downtown_weeklyMarket_00",
+      "frame_idx": 626,
+      "cond_a": {
+        "pa_mpjpe": 222.6
+      },
+      "cond_b": {
+        "pa_mpjpe": 211.0
+      },
+      "cond_c": {
+        "pa_mpjpe": 243.3
+      },
+      "cond_d": {
+        "pa_mpjpe": 243.1
+      },
+      "cond_e": {
+        "pa_mpjpe": 242.1
+      }
+    },
+    {
+      "frame_num": 22,
+      "seq_name": "downtown_windowShopping_00",
+      "frame_idx": 1329,
+      "cond_a": {
+        "pa_mpjpe": 221.8
+      },
+      "cond_b": {
+        "pa_mpjpe": 204.6
+      },
+      "cond_c": {
+        "pa_mpjpe": 246.9
+      },
+      "cond_d": {
+        "pa_mpjpe": 253.7
+      },
+      "cond_e": {
+        "pa_mpjpe": 253.2
+      }
+    },
+    {
+      "frame_num": 23,
+      "seq_name": "flat_guitar_01",
+      "frame_idx": 484,
+      "cond_a": {
+        "pa_mpjpe": 198.9
+      },
+      "cond_b": {
+        "pa_mpjpe": 189.2
+      },
+      "cond_c": {
+        "pa_mpjpe": 215.0
+      },
+      "cond_d": {
+        "pa_mpjpe": 237.7
+      },
+      "cond_e": {
+        "pa_mpjpe": 236.0
+      }
+    },
+    {
+      "frame_num": 24,
+      "seq_name": "flat_packBags_00",
+      "frame_idx": 1841,
+      "cond_a": {
+        "pa_mpjpe": 230.7
+      },
+      "cond_b": {
+        "pa_mpjpe": 227.6
+      },
+      "cond_c": {
+        "pa_mpjpe": 245.4
+      },
+      "cond_d": {
+        "pa_mpjpe": 264.6
+      },
+      "cond_e": {
+        "pa_mpjpe": 265.3
+      }
+    }
+  ]
+}

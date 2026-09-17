@@ -1,0 +1,12 @@
+....................ss.............                                      [100%]
+=============================== warnings summary ===============================
+code/tests/test_dsine_and_coarse_pose.py: 12 warnings
+  /home/dat/anaconda3/lib/python3.12/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+33 passed, 2 skipped, 12 warnings in 3.76s
+{"experiment_id": "DOC-AUDIT-20260917", "audit_base_commit": "426ff83b653e9c2706cf19a7d371eb6cbcfdcde0", "audit_worktree_dirty": true}
+results/pilot_4way_experiment_results.json 2 1 PASS
+results/pilot_5way_experiment_results.json 24 19 PASS
+results/pilot_6way_experiment_results.json 24 20 PASS

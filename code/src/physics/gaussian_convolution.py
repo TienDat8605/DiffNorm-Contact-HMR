@@ -56,22 +56,31 @@ def compute_gaussian_overlap_matrix(
     # 2. Joint covariance Sigma_ij = Sigma_i + Sigma_j
     joint_cov = cov_a_act + cov_b_act       # (K, 3, 3)
 
-    # 3. Determinants
-    det_a = torch.linalg.det(cov_a_act).clamp_min(1e-12)     # (K,)
-    det_b = torch.linalg.det(cov_b_act).clamp_min(1e-12)     # (K,)
-    det_joint = torch.linalg.det(joint_cov).clamp_min(1e-12) # (K,)
+    # 3. Exact log-determinants and stable Cholesky decomposition
+    # Eliminates arbitrary determinant floors and guarantees exact scale gradients
+    _, logdet_a = torch.linalg.slogdet(cov_a_act)
+    _, logdet_b = torch.linalg.slogdet(cov_b_act)
 
-    # Prefactor: (2*pi)^(3/2) * sqrt(det_a * det_b / det_joint)
-    prefactor = SQRT_2PI_CUBE * torch.sqrt((det_a * det_b) / det_joint)  # (K,)
+    # Cholesky decomposition on symmetric positive-definite joint covariance
+    eye3 = torch.eye(3, device=device, dtype=cov_a_act.dtype).unsqueeze(0)
+    L = torch.linalg.cholesky(joint_cov + 1e-12 * eye3)
+    logdet_joint = 2.0 * torch.sum(torch.log(torch.diagonal(L, dim1=-2, dim2=-1)), dim=-1)
 
-    # 4. Mahalanobis term: diff^T * (joint_cov)^(-1) * diff
-    # Solves (joint_cov) * x = diff -> x = joint_cov^(-1) * diff
-    # Use torch.linalg.solve for speed and numerical stability
-    sol = torch.linalg.solve(joint_cov, diff_act.unsqueeze(-1)).squeeze(-1)  # (K, 3)
+    # Prefactor in log-space: log( (2*pi)^(3/2) * sqrt( |Sigma_a| * |Sigma_b| / |Sigma_joint| ) )
+    log_prefactor = (1.5 * math.log(2.0 * math.pi)) + 0.5 * (logdet_a + logdet_b - logdet_joint)
+    prefactor = torch.exp(log_prefactor)
+
+    # 4. Mahalanobis term: diff^T * (joint_cov)^(-1) * diff via stable Cholesky solve
+    sol = torch.cholesky_solve(diff_act.unsqueeze(-1), L).squeeze(-1)  # (K, 3)
     mahalanobis = torch.sum(diff_act * sol, dim=-1)  # (K,)
 
     # 5. Overlap value K_act = prefactor * exp(-0.5 * mahalanobis)
-    k_act = prefactor * torch.exp(-0.5 * mahalanobis.clamp_max(50.0))  # (K,)
+    # Physically cut off beyond 50 sigma^2 (exp(-25) ~ 1e-11) without artificial floor
+    k_act = torch.where(
+        mahalanobis <= 50.0,
+        prefactor * torch.exp(-0.5 * mahalanobis),
+        torch.zeros_like(prefactor)
+    )
 
     # Scatter back into (M, P) matrix
     K_matrix = torch.zeros(M, P, device=device, dtype=mu_A.dtype)

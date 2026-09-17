@@ -21,15 +21,12 @@ def compute_mpjpe(pred_joints: torch.Tensor, gt_joints: torch.Tensor) -> float:
     return (dist.mean() * 1000.0).item()
 
 
-def compute_pa_mpjpe(pred_joints: torch.Tensor, gt_joints: torch.Tensor) -> float:
+def compute_single_pa_mpjpe(pred_j: torch.Tensor, gt_j: torch.Tensor) -> float:
     """
-    Procrustes-Aligned Mean Per Joint Position Error (PA-MPJPE).
-    Applies optimal rigid rotation, translation, and scale (Umeyama algorithm).
-    Returns: error in millimeters (mm)
+    Computes Umeyama Procrustes alignment for a single sample of shape (J, 3).
     """
-    # Ensure (J, 3)
-    p = pred_joints.view(-1, 3)
-    g = gt_joints.view(-1, 3)
+    p = pred_j.view(-1, 3)
+    g = gt_j.view(-1, 3)
 
     mu_p = p.mean(dim=0, keepdim=True)
     mu_g = g.mean(dim=0, keepdim=True)
@@ -40,20 +37,44 @@ def compute_pa_mpjpe(pred_joints: torch.Tensor, gt_joints: torch.Tensor) -> floa
     # Covariance matrix H = p_c^T * g_c
     H = torch.matmul(p_c.t(), g_c)
     U, S, Vt = torch.linalg.svd(H)
-    R = torch.matmul(Vt.t(), U.t())
 
-    # Handle reflection
+    R = torch.matmul(Vt.t(), U.t())
+    d = torch.ones(3, device=p.device, dtype=p.dtype)
+
+    # Reflection correction: adjust sign of last singular value in trace
     if torch.linalg.det(R) < 0:
+        d[2] = -1.0
         Vt_mod = Vt.clone()
         Vt_mod[-1, :] *= -1
         R = torch.matmul(Vt_mod.t(), U.t())
 
     var_p = torch.sum(p_c ** 2)
-    scale = torch.sum(S) / var_p.clamp_min(1e-8)
+    scale = torch.sum(d * S) / var_p.clamp_min(1e-8)
 
     p_transformed = scale * torch.matmul(p_c, R.t()) + mu_g
     dist = torch.norm(p_transformed - g, dim=-1)
     return (dist.mean() * 1000.0).item()
+
+
+def compute_pa_mpjpe(pred_joints: torch.Tensor, gt_joints: torch.Tensor) -> float:
+    """
+    Procrustes-Aligned Mean Per Joint Position Error (PA-MPJPE).
+    Applies optimal rigid rotation, translation, and scale (Umeyama algorithm) per sample.
+    pred_joints: (..., J, 3)
+    gt_joints: (..., J, 3)
+    Returns: mean error in millimeters (mm)
+    """
+    if pred_joints.dim() == 2:
+        return compute_single_pa_mpjpe(pred_joints, gt_joints)
+
+    pred_flat = pred_joints.view(-1, pred_joints.shape[-2], pred_joints.shape[-1])
+    gt_flat = gt_joints.view(-1, gt_joints.shape[-2], gt_joints.shape[-1])
+
+    errors = [
+        compute_single_pa_mpjpe(p, g)
+        for p, g in zip(pred_flat, gt_flat)
+    ]
+    return sum(errors) / len(errors)
 
 
 def compute_pve(pred_verts: torch.Tensor, gt_verts: torch.Tensor) -> float:

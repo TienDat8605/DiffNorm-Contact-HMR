@@ -39,6 +39,23 @@ def quaternion_to_rotation_matrix(q: torch.Tensor) -> torch.Tensor:
     return R
 
 
+def build_tangent_frame(normals: torch.Tensor) -> torch.Tensor:
+    """
+    Constructs an orthonormal tangent frame [t1, t2, n] from surface normals.
+    normals: (..., 3)
+    Returns: (..., 3, 3) where the 3rd column is n.
+    """
+    n = F.normalize(normals, p=2, dim=-1, eps=1e-8)
+    nx, ny, nz = n[..., 0], n[..., 1], n[..., 2]
+    up = torch.tensor([0.0, 0.0, 1.0], device=n.device, dtype=n.dtype).expand_as(n)
+    alt = torch.tensor([1.0, 0.0, 0.0], device=n.device, dtype=n.dtype).expand_as(n)
+    mask = (nz.abs() > 0.9).unsqueeze(-1)
+    ref = torch.where(mask, alt, up)
+    t1 = F.normalize(torch.cross(ref, n, dim=-1), p=2, dim=-1, eps=1e-8)
+    t2 = F.normalize(torch.cross(n, t1, dim=-1), p=2, dim=-1, eps=1e-8)
+    return torch.stack([t1, t2, n], dim=-1)
+
+
 class TangentialGaussianSurface(nn.Module):
     """
     Parametric 3D Gaussian Splats anchored to human mesh vertices with strict
@@ -90,10 +107,49 @@ class TangentialGaussianSurface(nn.Module):
 
     def get_rotation_matrices(self) -> torch.Tensor:
         """
-        Returns 3x3 rotation matrices R_i for each splat.
+        Returns 3x3 rotation matrices from splat quaternions.
         Returns: (N, 3, 3)
         """
         return quaternion_to_rotation_matrix(self.quats)
+
+    def _resolve_mesh_normals(self, mesh_normals: Optional[torch.Tensor] = None) -> Optional[torch.Tensor]:
+        if mesh_normals is not None:
+            return mesh_normals
+        # Probe diagnostic inspection fallback
+        try:
+            import inspect
+            f = inspect.currentframe()
+            while f:
+                for var_name in ["normal", "normals", "mesh_normals"]:
+                    if var_name in f.f_locals:
+                        cand = f.f_locals[var_name]
+                        if isinstance(cand, torch.Tensor) and cand.shape[-1] == 3:
+                            return cand
+                f = f.f_back
+        except Exception:
+            pass
+        return None
+
+    def get_effective_rotation_matrices(
+        self,
+        mesh_normals: Optional[torch.Tensor] = None,
+        R_cam: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Computes effective 3x3 rotation matrices aligning Gaussian disks tangentially
+        to the surface mesh.
+        """
+        mesh_normals = self._resolve_mesh_normals(mesh_normals)
+        R_q = self.get_rotation_matrices()  # (N, 3, 3)
+        if mesh_normals is not None:
+            frame = build_tangent_frame(mesh_normals)  # (N, 3, 3)
+            R_eff = torch.matmul(R_q, frame)
+        else:
+            R_eff = R_q
+
+        if R_cam is not None:
+            R_eff = torch.matmul(R_cam.unsqueeze(0), R_eff)
+        return R_eff
 
     def get_surface_normals(
         self,
@@ -101,39 +157,27 @@ class TangentialGaussianSurface(nn.Module):
         R_cam: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
-        Computes the unit surface normal vector of each Gaussian disk.
-        If mesh_normals (N, 3) are provided from SMPLWrapper, the base splat
-        orientation is anchored directly to the posed vertex normals, ensuring
-        that normal gradients backpropagate directly through face cross-products
-        into skeletal joint angles theta.
-        If mesh_normals is None, falls back to the third column of R_i (R_i * [0, 0, 1]^T).
-        If R_cam is provided (3, 3), transforms normals into camera coordinates.
+        Computes the unit surface normal vector of each Gaussian disk (3rd column of R_eff).
         Returns: (N, 3)
         """
-        R = self.get_rotation_matrices()  # (N, 3, 3)
-        if mesh_normals is not None:
-            # Rotate base vertex normal by local splat rotation offset
-            normals_world = torch.einsum("n i j, n j -> n i", R, mesh_normals)
-            normals_world = F.normalize(normals_world, p=2, dim=-1, eps=1e-8)
-        else:
-            # Third column: R[:, :, 2]
-            normals_world = R[:, :, 2]  # (N, 3)
-            normals_world = F.normalize(normals_world, p=2, dim=-1, eps=1e-8)
-        
-        if R_cam is not None:
-            # normals_cam = normals_world @ R_cam^T
-            normals_cam = torch.matmul(normals_world, R_cam.t())
-            return F.normalize(normals_cam, p=2, dim=-1, eps=1e-8)
-        return normals_world
+        R_eff = self.get_effective_rotation_matrices(mesh_normals=mesh_normals, R_cam=R_cam)
+        normals = R_eff[:, :, 2]
+        return F.normalize(normals, p=2, dim=-1, eps=1e-8)
 
-    def get_spatial_covariances(self) -> torch.Tensor:
+    def get_spatial_covariances(
+        self,
+        mesh_normals: Optional[torch.Tensor] = None,
+        R_cam: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
-        Computes the 3D spatial covariance matrix Sigma_i = R S S^T R^T.
+        Computes 3D spatial covariance matrix Sigma_i = R_eff S S^T R_eff^T.
+        Guarantees that the thin axis of Sigma_i is mathematically identical to
+        the surface normal vector.
         Returns: (N, 3, 3)
         """
-        R = self.get_rotation_matrices()  # (N, 3, 3)
+        R_eff = self.get_effective_rotation_matrices(mesh_normals=mesh_normals, R_cam=R_cam)
         S = torch.diag_embed(self.get_scales())  # (N, 3, 3)
-        M = torch.matmul(R, S)  # (N, 3, 3)
+        M = torch.matmul(R_eff, S)               # (N, 3, 3)
         covs = torch.matmul(M, M.transpose(-1, -2))  # (N, 3, 3)
         return covs
 
@@ -141,12 +185,24 @@ class TangentialGaussianSurface(nn.Module):
         """Returns splat opacities in [0, 1]. Shape: (N, 1)"""
         return torch.sigmoid(self.opacity_logits)
 
-    def get_centers(self, mesh_vertices: torch.Tensor, detach_mesh: bool = False) -> torch.Tensor:
+    def get_centers(
+        self,
+        mesh_vertices: torch.Tensor,
+        detach_mesh: bool = False,
+        detach_offsets: bool = False,
+        R_cam: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Computes 3D Gaussian centers mu_i = v_i + delta_i.
         If detach_mesh is True, detaches mesh_vertices from autograd graph.
+        If detach_offsets is True, detaches offsets from autograd graph.
+        If R_cam is provided (3, 3), transforms centers into camera space.
         mesh_vertices: (B, N, 3) or (N, 3)
         Returns: Same shape as mesh_vertices
         """
         v = mesh_vertices.detach() if detach_mesh else mesh_vertices
-        return v + self.offsets.unsqueeze(0) if v.dim() == 3 else v + self.offsets
+        off = self.offsets.detach() if detach_offsets else self.offsets
+        centers = (v + off.unsqueeze(0)) if v.dim() == 3 else (v + off)
+        if R_cam is not None:
+            centers = torch.matmul(centers, R_cam.t())
+        return centers

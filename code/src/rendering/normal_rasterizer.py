@@ -29,7 +29,7 @@ class DifferentiableNormalRasterizer(nn.Module):
         image_width: int = 256,
         tile_size: int = 32,
         anti_aliasing_filter: float = 0.3,
-        max_splats_per_tile: int = 40
+        max_splats_per_tile: int = 256
     ):
         super().__init__()
         self.H = image_height
@@ -186,7 +186,11 @@ class DifferentiableNormalRasterizer(nn.Module):
                     2.0 * diff[..., 0] * diff[..., 1] * sub_inv[:, 0, 1].view(K_cnt, 1, 1)
                 )  # (K, th, tw)
 
-                g_val = torch.exp(-0.5 * maha.clamp_max(16.0)).unsqueeze(-1)  # (K, th, tw, 1)
+                g_val = torch.where(
+                    maha <= 16.0,
+                    torch.exp(-0.5 * maha),
+                    torch.zeros_like(maha)
+                ).unsqueeze(-1)  # (K, th, tw, 1)
                 alpha = sub_opa.view(K_cnt, 1, 1, 1) * g_val                   # (K, th, tw, 1)
 
                 # Front-to-back parallel transmittance using cumprod
@@ -216,9 +220,10 @@ class DifferentiableNormalRasterizer(nn.Module):
         full_mask = torch.cat(row_blocks_mask, dim=0)
         full_depth = torch.cat(row_blocks_depth, dim=0)
 
-        # Normalize accumulated surface normals
-        norm_len = torch.norm(full_norm, p=2, dim=-1, keepdim=True).clamp_min(1e-6)
-        full_norm = full_norm / norm_len
+        # Normalize accumulated surface normals, gating by rendered opacity to prevent unit normals in empty background
+        norm_len = torch.norm(full_norm, p=2, dim=-1, keepdim=True)
+        valid_mask = (full_mask.unsqueeze(-1) > 1e-3) & (norm_len > 1e-4)
+        full_norm = torch.where(valid_mask, full_norm / norm_len.clamp_min(1e-6), torch.zeros_like(full_norm))
 
         return RenderOutput(
             normals=full_norm,

@@ -16,6 +16,8 @@ from src.gaussian.splat_surface import TangentialGaussianSurface
 from src.physics.collision_loss import GaussianSelfCollisionEngine
 from src.rendering.normal_rasterizer import DifferentiableNormalRasterizer, RenderOutput
 from src.rendering.losses_rendering import SurfaceNormalLoss, SilhouetteIoULoss, PhotometricLoss
+from src.optimization.nuisance_sensitivity import NuisanceSensitivityEstimator, SensitivityOutput
+from src.optimization.capacity_scheduler import CapacityGatedScheduler, StageState
 
 
 class StepOutput(NamedTuple):
@@ -27,6 +29,8 @@ class StepOutput(NamedTuple):
     loss_lap: float
     diagnostics: Dict[str, float]
     rendered: RenderOutput
+    sensitivity: Optional[SensitivityOutput] = None
+    stage_state: Optional[StageState] = None
 
 
 class DualFrequencyGradientRouter(nn.Module):
@@ -41,6 +45,7 @@ class DualFrequencyGradientRouter(nn.Module):
         collision_engine: GaussianSelfCollisionEngine,
         mesh_graph: MeshGraph,
         rasterizer: DifferentiableNormalRasterizer,
+        sensitivity_estimator: Optional[NuisanceSensitivityEstimator] = None,
         lr_theta: float = 1e-2,
         lr_trans: float = 1e-2,
         lr_offsets: float = 5e-3,
@@ -57,6 +62,7 @@ class DualFrequencyGradientRouter(nn.Module):
         self.collision_engine = collision_engine
         self.mesh_graph = mesh_graph
         self.rasterizer = rasterizer
+        self.sensitivity_estimator = sensitivity_estimator
 
         self.lambda_coll = lambda_coll
         self.lambda_mask = lambda_mask
@@ -105,15 +111,25 @@ class DualFrequencyGradientRouter(nn.Module):
         uncertainty: Optional[torch.Tensor],    # (H, W) normal uncertainty
         opt_kin: optim.Optimizer,
         opt_deform: optim.Optimizer,
-        R_cam: Optional[torch.Tensor] = None
+        init_theta: Optional[torch.Tensor] = None,
+        init_trans: Optional[torch.Tensor] = None,
+        R_cam: Optional[torch.Tensor] = None,
+        iteration: Optional[int] = None,
+        scheduler: Optional[CapacityGatedScheduler] = None
     ) -> StepOutput:
         """
-        Executes one step of dual-frequency optimization.
+        Executes one step of dual-frequency optimization with optional capacity gating.
         """
-        if theta.dim() == 2:
-            theta = theta.unsqueeze(0)
-        if trans.dim() == 1:
-            trans = trans.unsqueeze(0)
+        stage_state: Optional[StageState] = None
+        is_locked: bool = False
+        if scheduler is not None and iteration is not None:
+            stage_state = scheduler.pre_step(iteration, opt_kin, opt_deform, self.gaussians)
+            is_locked = stage_state.is_kinematic_locked
+
+        theta_leaf = theta
+        trans_leaf = trans
+        theta_in = theta.unsqueeze(0) if theta.dim() == 2 else theta
+        trans_in = trans.unsqueeze(0) if trans.dim() == 1 else trans
 
         opt_kin.zero_grad()
         opt_deform.zero_grad()
@@ -121,27 +137,30 @@ class DualFrequencyGradientRouter(nn.Module):
         # -------------------------------------------------------------
         # 1. Kinematic Stream: Forward Pass with Connected Graph
         # -------------------------------------------------------------
-        smpl_out = self.smpl(theta=theta, trans=trans)
+        smpl_out = self.smpl(theta=theta_in, trans=trans_in)
         verts = smpl_out["vertices"][0]  # (N, 3)
         mesh_normals = smpl_out["normals"][0]  # (N, 3)
 
-        # Centers and normals with full autograd history to theta
-        centers_cam = self.gaussians.get_centers(verts, detach_mesh=False)  # (N, 3)
-        covs = self.gaussians.get_spatial_covariances()                     # (N, 3, 3)
-        normals = self.gaussians.get_surface_normals(mesh_normals=mesh_normals, R_cam=R_cam) # (N, 3)
-        colors = self.gaussians.colors                                      # (N, 3)
-        opacities = self.gaussians.get_opacities()                         # (N, 1)
+        # Centers, covariances, and normals transformed consistently to camera frame
+        # If locked, detach offsets so geometric normal loss only differentiates w.r.t. kinematics
+        centers_cam = self.gaussians.get_centers(
+            verts, detach_mesh=False, detach_offsets=is_locked, R_cam=R_cam
+        )
+        covs = self.gaussians.get_spatial_covariances(mesh_normals=mesh_normals, R_cam=R_cam)       # (N, 3, 3)
+        normals = self.gaussians.get_surface_normals(mesh_normals=mesh_normals, R_cam=R_cam)       # (N, 3)
+        colors_detached = self.gaussians.colors.detach()                                             # (N, 3)
+        opacities_detached = self.gaussians.get_opacities().detach()                                # (N, 1)
 
         # 1a. Collision Loss (Analytical Overlap K_ij)
-        loss_coll, coll_diag = self.collision_engine(centers_cam, covs)
+        loss_coll, coll_diag = self.collision_engine(centers_cam, covs.detach())
 
         # 1b. Differentiable Normal Rasterization
         render_out = self.rasterizer(
             centers_cam=centers_cam,
-            covs_cam=covs,
+            covs_cam=covs.detach(),
             normals_cam=normals,
-            colors=colors,
-            opacities=opacities,
+            colors=colors_detached,
+            opacities=opacities_detached,
             K=K
         )
 
@@ -153,39 +172,79 @@ class DualFrequencyGradientRouter(nn.Module):
         # Geometric Low-Frequency Loss (Drives theta, trans)
         loss_geom = loss_norm + self.lambda_coll * loss_coll + self.lambda_mask * loss_mask
 
-        # Backpropagate geometric loss into both kinematics and offsets
+        # Backpropagate geometric loss into kinematics (and offsets if not locked)
         if loss_geom.requires_grad:
-            loss_geom.backward(retain_graph=True)
+            loss_geom.backward()
+
+        if is_locked and self.gaussians.offsets.grad is not None:
+            self.gaussians.offsets.grad.zero_()
+
+        # 1c. Nuisance-Aware Spectral Step Damping & Subspace Orthogonalization
+        sens_out: Optional[SensitivityOutput] = None
+        if not is_locked and self.sensitivity_estimator is not None and init_theta is not None and init_trans is not None:
+            th_in = theta_leaf.squeeze(0) if theta_leaf.dim() == 3 else theta_leaf
+            tr_in = trans_leaf.squeeze(0) if trans_leaf.dim() == 2 else trans_leaf
+            init_th = init_theta.squeeze(0) if init_theta.dim() == 3 else init_theta
+            init_tr = init_trans.squeeze(0) if init_trans.dim() == 2 else init_trans
+            g_th = theta_leaf.grad.squeeze(0) if (theta_leaf.grad is not None and theta_leaf.grad.dim() == 3) else theta_leaf.grad
+            g_tr = trans_leaf.grad.squeeze(0) if (trans_leaf.grad is not None and trans_leaf.grad.dim() == 2) else trans_leaf.grad
+
+            if g_th is not None and g_tr is not None and self.gaussians.offsets.grad is not None:
+                sens_out = self.sensitivity_estimator(
+                    theta=th_in,
+                    trans=tr_in,
+                    init_theta=init_th,
+                    init_trans=init_tr,
+                    verts=verts,
+                    joints=smpl_out["joints"][0],
+                    grad_theta=g_th,
+                    grad_trans=g_tr,
+                    grad_offsets=self.gaussians.offsets.grad
+                )
+
+                theta_leaf.grad.copy_(sens_out.filtered_grad_theta.view_as(theta_leaf.grad))
+                trans_leaf.grad.copy_(sens_out.filtered_grad_trans.view_as(trans_leaf.grad))
+                self.gaussians.offsets.grad.copy_(sens_out.filtered_grad_offsets)
 
         # -------------------------------------------------------------
         # 2. Deformation Stream: Forward Pass with Detached Mesh Vertices & Normals
         # -------------------------------------------------------------
-        # Detach mesh vertices and normals so d(loss_deform) / d(theta) == 0
-        centers_detached = self.gaussians.get_centers(verts, detach_mesh=True)
-        normals_detached = self.gaussians.get_surface_normals(mesh_normals=mesh_normals.detach(), R_cam=R_cam)
+        if not is_locked:
+            centers_detached = self.gaussians.get_centers(verts, detach_mesh=True)
+            covs_detached = self.gaussians.get_spatial_covariances(mesh_normals=mesh_normals.detach(), R_cam=R_cam)
+            normals_detached = self.gaussians.get_surface_normals(mesh_normals=mesh_normals.detach(), R_cam=R_cam)
 
-        render_deform = self.rasterizer(
-            centers_cam=centers_detached,
-            covs_cam=covs,
-            normals_cam=normals_detached,
-            colors=colors,
-            opacities=opacities,
-            K=K
-        )
+            render_deform = self.rasterizer(
+                centers_cam=centers_detached,
+                covs_cam=covs_detached,
+                normals_cam=normals_detached,
+                colors=self.gaussians.colors,
+                opacities=self.gaussians.get_opacities(),
+                K=K
+            )
 
-        loss_photo = self.loss_photo_fn(render_deform.rgb, target_rgb, mask=target_mask)
-        loss_lap = self.mesh_graph.laplacian_loss(self.gaussians.offsets)
-        loss_tight = self.mesh_graph.elastic_tether_loss(self.gaussians.offsets)
+            loss_photo = self.loss_photo_fn(render_deform.rgb, target_rgb, mask=target_mask)
+            loss_lap = self.mesh_graph.laplacian_loss(self.gaussians.offsets)
+            loss_tight = self.mesh_graph.elastic_tether_loss(self.gaussians.offsets)
 
-        loss_deform = loss_photo + self.lambda_lap * loss_lap + self.lambda_tight * loss_tight
+            loss_deform = loss_photo + self.lambda_lap * loss_lap + self.lambda_tight * loss_tight
 
-        # Backpropagate deformation loss (affects ONLY offsets, colors, scales)
-        if loss_deform.requires_grad:
-            loss_deform.backward()
+            # Backpropagate deformation loss (affects ONLY offsets, colors, scales)
+            if loss_deform.requires_grad:
+                loss_deform.backward()
+        else:
+            loss_photo = torch.tensor(0.0, device=verts.device)
+            loss_lap = torch.tensor(0.0, device=verts.device)
+            loss_deform = torch.tensor(0.0, device=verts.device)
 
         # Step optimizers
         opt_kin.step()
-        opt_deform.step()
+        if not is_locked:
+            opt_deform.step()
+
+        # Enforce physical bounding box on offsets if scheduler is present
+        if scheduler is not None and iteration is not None:
+            stage_state = scheduler.post_step(iteration, self.gaussians)
 
         loss_total = (loss_geom + loss_deform).item()
 
@@ -197,5 +256,12 @@ class DualFrequencyGradientRouter(nn.Module):
             loss_photo=loss_photo.item(),
             loss_lap=loss_lap.item(),
             diagnostics=coll_diag,
-            rendered=render_out
+            rendered=RenderOutput(
+                normals=render_out.normals.detach(),
+                rgb=render_out.rgb.detach(),
+                mask=render_out.mask.detach(),
+                depth=render_out.depth.detach()
+            ),
+            sensitivity=sens_out,
+            stage_state=stage_state
         )
